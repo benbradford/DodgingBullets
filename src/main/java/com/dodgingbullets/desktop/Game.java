@@ -42,8 +42,8 @@ public class Game {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         
-        // Android phone aspect ratio (9:16) scaled up
-        window = glfwCreateWindow(360, 640, "Dodging Bullets", NULL, NULL);
+        // Android phone aspect ratio (16:9) landscape
+        window = glfwCreateWindow(640, 360, "Dodging Bullets", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
@@ -82,7 +82,7 @@ public class Game {
         renderer = new DesktopRenderer();
         renderer.initialize();
         
-        player = new Player(180, 320); // Center of screen
+        player = new Player(320, 180); // Center of screen
         player.loadTextures(renderer);
     }
     

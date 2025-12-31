@@ -25,7 +25,7 @@ public class DesktopRenderer implements Renderer {
         
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0, 360, 0, 640, -1, 1); // Android phone aspect ratio (9:16)
+        glOrtho(0, 640, 0, 360, -1, 1); // Android phone aspect ratio (16:9) landscape
         
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
