@@ -5,6 +5,8 @@ import com.dodgingbullets.core.Renderer;
 import com.dodgingbullets.core.Texture;
 import com.dodgingbullets.core.Bullet;
 import com.dodgingbullets.core.ShellCasing;
+import com.dodgingbullets.core.Turret;
+import com.dodgingbullets.core.Direction;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
@@ -15,6 +17,8 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
@@ -29,8 +33,10 @@ public class Game {
     private Texture shadowTexture;
     private Texture bulletTexture;
     private Texture shellTexture;
+    private Map<Direction, Texture> turretTextures = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
+    private Turret turret;
     private boolean[] keys = new boolean[4]; // UP, DOWN, LEFT, RIGHT
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -109,6 +115,19 @@ public class Game {
         bulletTexture = renderer.loadTexture("assets/bullet.png");
         shellTexture = renderer.loadTexture("assets/shell.png");
         
+        // Load turret textures
+        turretTextures.put(Direction.RIGHT, renderer.loadTexture("assets/gunturret_e.png"));
+        turretTextures.put(Direction.UP_RIGHT, renderer.loadTexture("assets/gunturret_ne.png"));
+        turretTextures.put(Direction.UP, renderer.loadTexture("assets/gunturret_n.png"));
+        turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("assets/gunturret_nw.png"));
+        turretTextures.put(Direction.LEFT, renderer.loadTexture("assets/gunturret_w.png"));
+        turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("assets/gunturret_sw.png"));
+        turretTextures.put(Direction.DOWN, renderer.loadTexture("assets/gunturret_s.png"));
+        turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("assets/gunturret_se.png"));
+        
+        // Create turret at a fixed position
+        turret = new Turret(500, 250);
+        
         player = new Player(320, 180); // Center of screen
         player.loadTextures(renderer);
     }
@@ -118,13 +137,22 @@ public class Game {
             player.update(keys, jumpPressed, jumpHeld);
             jumpPressed = false; // Reset jump press after processing
             
-            // Handle shooting
+            // Update turret
+            turret.update(player.getX(), player.getY());
+            
+            // Handle player shooting
             if (spacePressed) {
                 float[] gunPos = player.getGunBarrelPosition();
                 bullets.add(new Bullet(gunPos[0], gunPos[1], player.getCurrentDirection()));
                 // Add shell casing effect
                 shells.add(new ShellCasing(player.getX(), player.getY()));
                 spacePressed = false;
+            }
+            
+            // Handle turret shooting
+            if (turret.shouldShoot()) {
+                float[] barrelPos = turret.getBarrelPosition();
+                bullets.add(new Bullet(barrelPos[0], barrelPos[1], turret.getFacingDirection()));
             }
             
             // Update bullets
@@ -161,6 +189,10 @@ public class Game {
             Texture currentTexture = player.getCurrentTexture();
             renderer.render(currentTexture, 
                 player.getX() - 32, player.getY() - 32 + player.getJumpOffset(), 64, 64);
+            
+            // Render turret (bigger size)
+            Texture turretTexture = turretTextures.get(turret.getFacingDirection());
+            renderer.render(turretTexture, turret.getX() - 32, turret.getY() - 32, 64, 64);
             
             // Render bullets (smaller size)
             for (Bullet bullet : bullets) {
