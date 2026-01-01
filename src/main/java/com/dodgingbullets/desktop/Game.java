@@ -149,9 +149,19 @@ public class Game {
             player.update(keys, jumpPressed, jumpHeld);
             jumpPressed = false; // Reset jump press after processing
             
-            // Update camera to follow player (keep player centered)
-            cameraX = player.getX() - 320; // Center horizontally (640/2 = 320)
-            cameraY = player.getY() - 180; // Center vertically (360/2 = 180)
+            // Update camera to follow player with map edge clamping
+            float mapWidth = 2560;
+            float mapHeight = 1440;
+            float screenWidth = 640;
+            float screenHeight = 360;
+            
+            // Calculate desired camera position (player centered)
+            float desiredCameraX = player.getX() - screenWidth / 2;
+            float desiredCameraY = player.getY() - screenHeight / 2;
+            
+            // Clamp camera to map boundaries
+            cameraX = Math.max(0, Math.min(mapWidth - screenWidth, desiredCameraX));
+            cameraY = Math.max(0, Math.min(mapHeight - screenHeight, desiredCameraY));
             
             // Update turret
             turret.update(player.getX(), player.getY());
@@ -216,10 +226,10 @@ public class Game {
             renderer.render(shadowTexture, 
                 player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
             
-            // Render player (elevated by jump offset, always centered on screen)
+            // Render player (position relative to camera, not always centered)
             Texture currentTexture = player.getCurrentTexture();
             renderer.render(currentTexture, 
-                320 - 32, 180 - 32 + player.getJumpOffset(), 64, 64);
+                player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
             
             // Render turret (with camera offset)
             Texture turretTexture = turretTextures.get(turret.getFacingDirection());

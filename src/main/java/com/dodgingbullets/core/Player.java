@@ -135,11 +135,26 @@ public class Player {
         float mapHeight = 1440;
         float margin = 32; // Half player width for proper collision
         
-        if (x < margin || x > mapWidth - margin || y < margin || y > mapHeight - margin) {
-            // Revert to previous position if out of bounds
-            x = prevX;
-            y = prevY;
-            isMoving = false;
+        // Check X boundary separately
+        if (x < margin || x > mapWidth - margin) {
+            x = prevX; // Revert X movement only
+        }
+        
+        // Check Y boundary separately  
+        if (y < margin || y > mapHeight - margin) {
+            y = prevY; // Revert Y movement only
+        }
+        
+        // Update movement state based on final position
+        if (x == prevX && y == prevY) {
+            isMoving = false; // No movement occurred
+        }
+        
+        // Clear shooting direction if player starts moving in a different direction after override period
+        if (isMoving && shootingDirection != null && 
+            System.currentTimeMillis() - lastShotTime >= SHOOTING_OVERRIDE_DURATION &&
+            currentDirection != shootingDirection) {
+            shootingDirection = null;
         }
         
         if (!wasMoving && isMoving) {
@@ -170,9 +185,12 @@ public class Player {
     }
     
     public Texture getCurrentTexture() {
-        // Use shooting direction if within override time, otherwise use movement direction
+        // Use shooting direction if within override time, or if not moving and have shot before
         Direction displayDirection = currentDirection;
-        if (shootingDirection != null && System.currentTimeMillis() - lastShotTime < SHOOTING_OVERRIDE_DURATION) {
+        boolean withinOverrideTime = shootingDirection != null && System.currentTimeMillis() - lastShotTime < SHOOTING_OVERRIDE_DURATION;
+        boolean stationaryAfterShooting = shootingDirection != null && !isMoving;
+        
+        if (withinOverrideTime || stationaryAfterShooting) {
             displayDirection = shootingDirection;
         }
         
