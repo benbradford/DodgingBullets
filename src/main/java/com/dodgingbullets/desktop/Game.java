@@ -33,6 +33,7 @@ public class Game {
     private Texture shadowTexture;
     private Texture bulletTexture;
     private Texture shellTexture;
+    private Texture brokenTurretTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
@@ -142,6 +143,9 @@ public class Game {
         turretTextures.put(Direction.DOWN, renderer.loadTexture("assets/gunturret_s.png"));
         turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("assets/gunturret_se.png"));
         
+        // Load broken turret texture
+        brokenTurretTexture = renderer.loadTexture("assets/gunturret_broken.png");
+        
         // Create turret at a fixed position
         turret = new Turret(500, 250);
         
@@ -199,11 +203,19 @@ public class Game {
                 bullets.add(new Bullet(barrelPos[0], barrelPos[1], turret.getFacingDirection()));
             }
             
-            // Update bullets
+            // Update bullets and check collisions
             Iterator<Bullet> bulletIter = bullets.iterator();
             while (bulletIter.hasNext()) {
                 Bullet bullet = bulletIter.next();
                 bullet.update();
+                
+                // Check collision with turret
+                if (turret.isInSpriteHitbox(bullet.getX(), bullet.getY())) {
+                    turret.takeDamage();
+                    bulletIter.remove(); // Remove bullet on hit
+                    continue;
+                }
+                
                 if (bullet.isExpired()) {
                     bulletIter.remove();
                 }
@@ -224,22 +236,29 @@ public class Game {
             // Render tiled grass background (with camera offset)
             renderTiledBackground();
             
-            // Render map boundaries
-            renderMapBoundaries();
-            
             // Render smaller shadow (positioned below player, with camera offset)
             float shadowSize = 40 - (player.getJumpOffset() * 0.3f);
             renderer.render(shadowTexture, 
                 player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
             
-            // Render player (position relative to camera, not always centered)
-            Texture currentTexture = player.getCurrentTexture();
-            renderer.render(currentTexture, 
-                player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
-            
-            // Render turret (8x8 cells = 128x128 pixels)
-            Texture turretTexture = turretTextures.get(turret.getFacingDirection());
-            renderer.render(turretTexture, turret.getX() - 64 - cameraX, turret.getY() - 64 - cameraY, 128, 128);
+            // Depth-sorted rendering: render objects from top to bottom (higher Y to lower Y)
+            if (player.getY() < turret.getY()) {
+                // Player is below turret, render turret first (behind)
+                Texture turretTexture = turret.isDestroyed() ? brokenTurretTexture : turretTextures.get(turret.getFacingDirection());
+                renderer.render(turretTexture, turret.getX() - 64 - cameraX, turret.getY() - 64 - cameraY, 128, 128);
+                
+                Texture currentTexture = player.getCurrentTexture();
+                renderer.render(currentTexture, 
+                    player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
+            } else {
+                // Turret is below player, render player first (behind)
+                Texture currentTexture = player.getCurrentTexture();
+                renderer.render(currentTexture, 
+                    player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
+                
+                Texture turretTexture = turret.isDestroyed() ? brokenTurretTexture : turretTextures.get(turret.getFacingDirection());
+                renderer.render(turretTexture, turret.getX() - 64 - cameraX, turret.getY() - 64 - cameraY, 128, 128);
+            }
             
             // Render bullets (smaller size, with camera offset)
             for (Bullet bullet : bullets) {

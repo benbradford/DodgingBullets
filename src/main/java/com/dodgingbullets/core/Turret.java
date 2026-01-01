@@ -5,6 +5,10 @@ public class Turret {
     private Direction facingDirection;
     private long lastShotTime;
     private static final long SHOT_INTERVAL = 2000; // 2 seconds between shots
+    private int health = 100;
+    private static final int MAX_HEALTH = 100;
+    private static final int BULLET_DAMAGE = 10;
+    private boolean isDestroyed = false;
     
     public Turret(float x, float y) {
         this.x = x;
@@ -46,12 +50,31 @@ public class Turret {
     }
     
     public boolean shouldShoot() {
+        if (isDestroyed) return false; // Destroyed turrets can't shoot
+        
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastShotTime >= SHOT_INTERVAL) {
             lastShotTime = currentTime;
             return true;
         }
         return false;
+    }
+    
+    public boolean takeDamage() {
+        if (isDestroyed) return false; // Already destroyed
+        
+        health -= BULLET_DAMAGE;
+        if (health <= 0) {
+            isDestroyed = true;
+            return true; // Turret was destroyed
+        }
+        return false; // Turret still alive
+    }
+    
+    public boolean isInSpriteHitbox(float bulletX, float bulletY) {
+        // Check if bullet is within turret's sprite hitbox (64x64 pixels, 4x4 cells)
+        return bulletX >= x - 32 && bulletX <= x + 32 && 
+               bulletY >= y - 32 && bulletY <= y + 32;
     }
     
     public float[] getBarrelPosition() {
@@ -73,4 +96,6 @@ public class Turret {
     public float getX() { return x; }
     public float getY() { return y; }
     public Direction getFacingDirection() { return facingDirection; }
+    public boolean isDestroyed() { return isDestroyed; }
+    public int getHealth() { return health; }
 }
