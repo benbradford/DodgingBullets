@@ -19,6 +19,7 @@ public class Player {
     private Direction shootingDirection = null;
     private long lastShotTime = 0;
     private static final long SHOOTING_OVERRIDE_DURATION = 300; // 0.3 seconds
+    private Turret turret; // Reference to check collision
     private boolean isMoving = false;
     private int animationFrame = 0;
     private boolean animationForward = true;
@@ -30,6 +31,30 @@ public class Player {
     public Player(float x, float y) {
         this.x = x;
         this.y = y;
+    }
+    
+    public void setTurret(Turret turret) {
+        this.turret = turret;
+    }
+    
+    private boolean wouldCollideWithTurret(float newX, float newY) {
+        if (turret == null) return false;
+        
+        // Player movement hitbox at new position
+        int playerLeft = (int)((newX - 6) / 16);   // 12 pixel width
+        int playerRight = (int)((newX + 6) / 16);
+        int playerBottom = (int)((newY - 32) / 16); // Bottom 1/5th
+        int playerTop = (int)((newY - 32 + 12.8f) / 16);
+        
+        // Turret movement hitbox (lower half)
+        int turretLeft = (int)((turret.getX() - 32) / 16);
+        int turretRight = (int)((turret.getX() + 32) / 16);
+        int turretBottom = (int)((turret.getY() - 32) / 16);
+        int turretTop = (int)(turret.getY() / 16);
+        
+        // Check overlap
+        return !(playerRight < turretLeft || playerLeft > turretRight || 
+                 playerTop < turretBottom || playerBottom > turretTop);
     }
     
     public void loadTextures(Renderer renderer) {
@@ -143,6 +168,22 @@ public class Player {
         // Check Y boundary separately  
         if (y < margin || y > mapHeight - margin) {
             y = prevY; // Revert Y movement only
+        }
+        
+        // Check collision with turret movement hitbox - X axis
+        if (wouldCollideWithTurret(x, prevY)) {
+            x = prevX; // Revert X movement only
+        }
+        
+        // Check collision with turret movement hitbox - Y axis
+        if (wouldCollideWithTurret(prevX, y)) {
+            y = prevY; // Revert Y movement only
+        }
+        
+        // Final check - if both movements together cause collision, revert both
+        if (wouldCollideWithTurret(x, y)) {
+            x = prevX;
+            y = prevY;
         }
         
         // Update movement state based on final position

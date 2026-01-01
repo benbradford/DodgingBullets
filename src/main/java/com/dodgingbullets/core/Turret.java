@@ -55,7 +55,7 @@ public class Turret {
     }
     
     public float[] getBarrelPosition() {
-        // Gun barrel positions for each direction (adjusted for 64x64 turret)
+        // Gun barrel positions for each direction (adjusted for actual sprite size ~64x64)
         float barrelX = x, barrelY = y;
         switch (facingDirection) {
             case UP: barrelX += 0; barrelY += 32; break;
