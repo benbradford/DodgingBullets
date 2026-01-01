@@ -37,10 +37,14 @@ public class Game {
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
     private Turret turret;
-    private boolean[] keys = new boolean[4]; // UP, DOWN, LEFT, RIGHT
+    private float cameraX = 0;
+    private float cameraY = 0;
+    private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
-    private boolean spacePressed = false;
+    private boolean mousePressed = false;
+    private double mouseX = 0;
+    private double mouseY = 0;
     
     public void run() {
         init();
@@ -75,19 +79,27 @@ public class Game {
             
             boolean pressed = action == GLFW_PRESS || action == GLFW_REPEAT;
             switch (key) {
-                case GLFW_KEY_UP: keys[0] = pressed; break;
-                case GLFW_KEY_DOWN: keys[1] = pressed; break;
-                case GLFW_KEY_LEFT: keys[2] = pressed; break;
-                case GLFW_KEY_RIGHT: keys[3] = pressed; break;
+                case GLFW_KEY_W: keys[0] = pressed; break; // W = forward/up
+                case GLFW_KEY_S: keys[1] = pressed; break; // S = backward/down
+                case GLFW_KEY_A: keys[2] = pressed; break; // A = left
+                case GLFW_KEY_D: keys[3] = pressed; break; // D = right
                 case GLFW_KEY_J: 
                     jumpPressed = (action == GLFW_PRESS);
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
                     if (action == GLFW_RELEASE) jumpHeld = false;
                     break;
-                case GLFW_KEY_SPACE: 
-                    spacePressed = (action == GLFW_PRESS);
-                    break;
             }
+        });
+        
+        glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
+            if (button == GLFW_MOUSE_BUTTON_LEFT) {
+                mousePressed = (action == GLFW_PRESS);
+            }
+        });
+        
+        glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
+            mouseX = xpos;
+            mouseY = 360 - ypos; // Flip Y coordinate to match OpenGL
         });
         
         try (MemoryStack stack = stackPush()) {
@@ -137,16 +149,32 @@ public class Game {
             player.update(keys, jumpPressed, jumpHeld);
             jumpPressed = false; // Reset jump press after processing
             
+            // Update camera to follow player (keep player centered)
+            cameraX = player.getX() - 320; // Center horizontally (640/2 = 320)
+            cameraY = player.getY() - 180; // Center vertically (360/2 = 180)
+            
             // Update turret
             turret.update(player.getX(), player.getY());
             
-            // Handle player shooting
-            if (spacePressed) {
+            // Handle player shooting with mouse
+            if (mousePressed) {
+                // Calculate world position of mouse
+                double worldMouseX = mouseX + cameraX;
+                double worldMouseY = mouseY + cameraY;
+                
+                // Calculate direction from player to mouse
+                double deltaX = worldMouseX - player.getX();
+                double deltaY = worldMouseY - player.getY();
+                double angle = Math.atan2(deltaY, deltaX);
+                
+                Direction shootDirection = Player.calculateDirectionFromAngle(angle);
+                player.setShootingDirection(shootDirection);
+                
                 float[] gunPos = player.getGunBarrelPosition();
-                bullets.add(new Bullet(gunPos[0], gunPos[1], player.getCurrentDirection()));
+                bullets.add(new Bullet(gunPos[0], gunPos[1], angle));
                 // Add shell casing effect
                 shells.add(new ShellCasing(player.getX(), player.getY()));
-                spacePressed = false;
+                mousePressed = false;
             }
             
             // Handle turret shooting
@@ -177,31 +205,34 @@ public class Game {
             
             renderer.clear();
             
-            // Render tiled grass background
+            // Render tiled grass background (with camera offset)
             renderTiledBackground();
             
-            // Render smaller shadow (positioned below player)
+            // Render map boundaries
+            renderMapBoundaries();
+            
+            // Render smaller shadow (positioned below player, with camera offset)
             float shadowSize = 40 - (player.getJumpOffset() * 0.3f);
             renderer.render(shadowTexture, 
-                player.getX() - shadowSize/2, player.getY() - shadowSize/2 - 20, shadowSize, shadowSize);
+                player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
             
-            // Render player (elevated by jump offset)
+            // Render player (elevated by jump offset, always centered on screen)
             Texture currentTexture = player.getCurrentTexture();
             renderer.render(currentTexture, 
-                player.getX() - 32, player.getY() - 32 + player.getJumpOffset(), 64, 64);
+                320 - 32, 180 - 32 + player.getJumpOffset(), 64, 64);
             
-            // Render turret (bigger size)
+            // Render turret (with camera offset)
             Texture turretTexture = turretTextures.get(turret.getFacingDirection());
-            renderer.render(turretTexture, turret.getX() - 32, turret.getY() - 32, 64, 64);
+            renderer.render(turretTexture, turret.getX() - 32 - cameraX, turret.getY() - 32 - cameraY, 64, 64);
             
-            // Render bullets (smaller size)
+            // Render bullets (smaller size, with camera offset)
             for (Bullet bullet : bullets) {
-                renderer.render(bulletTexture, bullet.getX() - 3, bullet.getY() - 3, 6, 6);
+                renderer.render(bulletTexture, bullet.getX() - 3 - cameraX, bullet.getY() - 3 - cameraY, 6, 6);
             }
             
-            // Render shell casings with rotation and fade (smaller size)
+            // Render shell casings with rotation and fade (smaller size, with camera offset)
             for (ShellCasing shell : shells) {
-                renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3, shell.getY() - 1.5f, 6, 3, shell.getRotation(), shell.getAlpha());
+                renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
             }
             
             glfwSwapBuffers(window);
@@ -211,13 +242,44 @@ public class Game {
     
     private void renderTiledBackground() {
         int tileSize = 64; // Size of each grass tile
-        int tilesX = (640 / tileSize) + 1; // Number of tiles horizontally
-        int tilesY = (360 / tileSize) + 1; // Number of tiles vertically
+        float mapWidth = 2560;
+        float mapHeight = 1440;
         
-        for (int x = 0; x < tilesX; x++) {
-            for (int y = 0; y < tilesY; y++) {
-                renderer.render(grassTexture, x * tileSize, y * tileSize, tileSize, tileSize);
+        // Calculate which tiles are visible based on camera position
+        int startTileX = Math.max(0, (int)(cameraX / tileSize) - 1);
+        int startTileY = Math.max(0, (int)(cameraY / tileSize) - 1);
+        int endTileX = Math.min((int)(mapWidth / tileSize), startTileX + (640 / tileSize) + 3);
+        int endTileY = Math.min((int)(mapHeight / tileSize), startTileY + (360 / tileSize) + 3);
+        
+        for (int x = startTileX; x < endTileX; x++) {
+            for (int y = startTileY; y < endTileY; y++) {
+                float worldX = x * tileSize;
+                float worldY = y * tileSize;
+                renderer.render(grassTexture, worldX - cameraX, worldY - cameraY, tileSize, tileSize);
             }
+        }
+    }
+    
+    private void renderMapBoundaries() {
+        float mapWidth = 2560;
+        float mapHeight = 1440;
+        
+        // Only render boundaries if they're visible on screen
+        // Top boundary
+        if (cameraY <= 10) {
+            renderer.render(bulletTexture, 0 - cameraX, 0 - cameraY, mapWidth, 4);
+        }
+        // Bottom boundary  
+        if (cameraY + 360 >= mapHeight - 10) {
+            renderer.render(bulletTexture, 0 - cameraX, mapHeight - 4 - cameraY, mapWidth, 4);
+        }
+        // Left boundary
+        if (cameraX <= 10) {
+            renderer.render(bulletTexture, 0 - cameraX, 0 - cameraY, 4, mapHeight);
+        }
+        // Right boundary
+        if (cameraX + 640 >= mapWidth - 10) {
+            renderer.render(bulletTexture, mapWidth - 4 - cameraX, 0 - cameraY, 4, mapHeight);
         }
     }
     

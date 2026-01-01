@@ -25,6 +25,16 @@ public class Bullet {
         }
     }
     
+    public Bullet(float startX, float startY, double angle) {
+        this.x = startX;
+        this.y = startY;
+        this.creationTime = System.currentTimeMillis();
+        
+        // Set velocity based on angle
+        velocityX = (float)(Math.cos(angle) * SPEED);
+        velocityY = (float)(Math.sin(angle) * SPEED);
+    }
+    
     public void update() {
         x += velocityX;
         y += velocityY;
