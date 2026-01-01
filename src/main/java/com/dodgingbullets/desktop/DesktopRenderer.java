@@ -51,6 +51,46 @@ public class DesktopRenderer implements Renderer {
     }
     
     @Override
+    public void renderRotated(Texture texture, float x, float y, float width, float height, float rotation) {
+        glBindTexture(GL_TEXTURE_2D, texture.getTextureId());
+        
+        glPushMatrix();
+        glTranslatef(x + width/2, y + height/2, 0);
+        glRotatef((float)Math.toDegrees(rotation), 0, 0, 1);
+        glTranslatef(-width/2, -height/2, 0);
+        
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 1); glVertex2f(0, 0);
+        glTexCoord2f(1, 1); glVertex2f(width, 0);
+        glTexCoord2f(1, 0); glVertex2f(width, height);
+        glTexCoord2f(0, 0); glVertex2f(0, height);
+        glEnd();
+        
+        glPopMatrix();
+    }
+    
+    @Override
+    public void renderRotatedWithAlpha(Texture texture, float x, float y, float width, float height, float rotation, float alpha) {
+        glBindTexture(GL_TEXTURE_2D, texture.getTextureId());
+        
+        glPushMatrix();
+        glColor4f(1.0f, 1.0f, 1.0f, alpha); // Set alpha
+        glTranslatef(x + width/2, y + height/2, 0);
+        glRotatef((float)Math.toDegrees(rotation), 0, 0, 1);
+        glTranslatef(-width/2, -height/2, 0);
+        
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 1); glVertex2f(0, 0);
+        glTexCoord2f(1, 1); glVertex2f(width, 0);
+        glTexCoord2f(1, 0); glVertex2f(width, height);
+        glTexCoord2f(0, 0); glVertex2f(0, height);
+        glEnd();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f); // Reset alpha
+        glPopMatrix();
+    }
+    
+    @Override
     public void present() {
         // GLFW swap buffers is handled in main loop
     }

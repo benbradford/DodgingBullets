@@ -5,6 +5,16 @@ import java.util.Map;
 
 public class Player {
     private float x, y;
+    private float jumpOffset = 0;
+    private float jumpVelocity = 0;
+    private boolean isJumping = false;
+    private boolean spaceHeld = false;
+    private long jumpStartTime = 0;
+    private static final float MIN_JUMP_STRENGTH = 6.0f;
+    private static final float MAX_JUMP_STRENGTH = 21.0f;
+    private static final long MAX_CHARGE_TIME = 500; // milliseconds
+    private static final float GRAVITY = 0.3f;
+    
     private Direction currentDirection = Direction.UP;
     private boolean isMoving = false;
     private int animationFrame = 0;
@@ -29,7 +39,46 @@ public class Player {
         }
     }
     
-    public void update(boolean[] keys) {
+    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld) {
+        // Handle jump start immediately on press
+        if (jumpPressed && !isJumping) {
+            isJumping = true;
+            jumpVelocity = MIN_JUMP_STRENGTH; // Start with minimum jump
+            jumpStartTime = System.currentTimeMillis();
+            this.spaceHeld = jumpHeld;
+        }
+        
+        // Boost jump if J is still held during ascent
+        if (isJumping && jumpHeld && jumpVelocity > 0) {
+            long chargeTime = System.currentTimeMillis() - jumpStartTime;
+            if (chargeTime <= MAX_CHARGE_TIME) {
+                float chargeRatio = chargeTime / (float)MAX_CHARGE_TIME;
+                float boostStrength = (MAX_JUMP_STRENGTH - MIN_JUMP_STRENGTH) * chargeRatio * 0.015f;
+                jumpVelocity += boostStrength;
+            }
+        }
+        
+        if (!jumpHeld) {
+            this.spaceHeld = false;
+        }
+        
+        // Update jump physics
+        if (isJumping) {
+            jumpOffset += jumpVelocity;
+            jumpVelocity -= GRAVITY;
+            
+            // Early jump break if J released during jump
+            if (!jumpHeld && jumpVelocity > 0) {
+                jumpVelocity *= 0.7f; // Reduce jump velocity
+            }
+            
+            if (jumpOffset <= 0) {
+                jumpOffset = 0;
+                jumpVelocity = 0;
+                isJumping = false;
+            }
+        }
+        
         boolean wasMoving = isMoving;
         isMoving = false;
         
@@ -113,4 +162,22 @@ public class Player {
     
     public float getX() { return x; }
     public float getY() { return y; }
+    public float getJumpOffset() { return jumpOffset; }
+    public Direction getCurrentDirection() { return currentDirection; }
+    
+    public float[] getGunBarrelPosition() {
+        // Approximate gun barrel positions based on direction
+        float gunX = x, gunY = y;
+        switch (currentDirection) {
+            case UP: gunX += 8; gunY += 20; break;
+            case DOWN: gunX -= 8; gunY -= 20; break;
+            case LEFT: gunX -= 20; gunY += 2; break;  // Raised from -5 to +2
+            case RIGHT: gunX += 20; gunY += 2; break; // Raised from -5 to +2
+            case UP_LEFT: gunX -= 12; gunY += 16; break;
+            case UP_RIGHT: gunX += 12; gunY += 16; break;
+            case DOWN_LEFT: gunX -= 12; gunY -= 16; break;
+            case DOWN_RIGHT: gunX += 12; gunY -= 16; break;
+        }
+        return new float[]{gunX, gunY};
+    }
 }

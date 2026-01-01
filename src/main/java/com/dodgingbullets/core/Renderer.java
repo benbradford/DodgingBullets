@@ -4,6 +4,8 @@ public interface Renderer {
     void initialize();
     void clear();
     void render(Texture texture, float x, float y, float width, float height);
+    void renderRotated(Texture texture, float x, float y, float width, float height, float rotation);
+    void renderRotatedWithAlpha(Texture texture, float x, float y, float width, float height, float rotation, float alpha);
     void present();
     void cleanup();
     Texture loadTexture(String path);

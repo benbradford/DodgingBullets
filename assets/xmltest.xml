@@ -1,0 +1,24 @@
+<root>  
+ <sms count="4">  
+  <data>  
+   <smsid>6</smsid>  
+   <recipientmobno>+91999996666</recipientmobno>  
+   <msgtext>Testing Testing Testing </msgtext>  
+  </data>  
+  <data>  
+   <smsid>7</smsid>  
+   <recipientmobno>+919999655555</recipientmobno>  
+   <msgtext>TEsing Sample</msgtext>  
+  </data>  
+  <data>  
+   <smsid>8</smsid>  
+   <recipientmobno>91999996666</recipientmobno>  
+   <msgtext>With Testing</msgtext>  
+  </data>  
+  <data>  
+   <smsid>9</smsid>  
+   <recipientmobno>+91999977777</recipientmobno>  
+   <msgtext>Testing</msgtext>  
+  </data>  
+ </sms>  
+</root>  
