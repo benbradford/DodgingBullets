@@ -327,11 +327,11 @@ public class Game {
         float mapWidth = 2560;
         float mapHeight = 1440;
         
-        // Calculate visible grid range
-        int startGridX = (int)(cameraX / GRID_SIZE);
-        int startGridY = (int)(cameraY / GRID_SIZE);
-        int endGridX = startGridX + (640 / GRID_SIZE) + 2;
-        int endGridY = startGridY + (360 / GRID_SIZE) + 2;
+        // Calculate visible grid range with proper bounds
+        int startGridX = (int)Math.floor(cameraX / GRID_SIZE);
+        int startGridY = (int)Math.floor(cameraY / GRID_SIZE);
+        int endGridX = (int)Math.ceil((cameraX + 640) / GRID_SIZE);
+        int endGridY = (int)Math.ceil((cameraY + 360) / GRID_SIZE);
         
         // Render vertical grid lines (thicker)
         for (int x = startGridX; x <= endGridX; x++) {

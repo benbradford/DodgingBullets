@@ -3,33 +3,108 @@
 ## Overview
 A Java OpenGL 2D top-down game featuring a character that can move in 8 directions with animated sprites. Built with LWJGL for desktop and designed for future Android compatibility.
 
-## Project Structure
-- **Core Game Logic**: `src/main/java/com/dodgingbullets/core/`
-  - `Player.java` - Character movement and animation system
-  - `Direction.java` - 8-direction movement enum
-  - `Renderer.java` - Abstract rendering interface for platform independence
-  - `Texture.java` - Texture data container
+# DodgingBullets
 
-- **Desktop Implementation**: `src/main/java/com/dodgingbullets/desktop/`
-  - `Game.java` - Main game loop and GLFW window management
-  - `DesktopRenderer.java` - OpenGL rendering implementation
+A 2D top-down Java game built with LWJGL/OpenGL featuring grid-based collision detection, mouse-controlled shooting, and enemy combat mechanics.
 
-- **Assets**: `assets/` folder contains character sprites
-  - 8 directions: up, down, left, right, upleft, upright, downleft, downright
-  - Each direction has: 3 animation frames (01, 02, 03) + 1 idle frame
-  - Format: mc{direction}{frame}.png (e.g., mcup01.png, mcupidle.png)
+## Game Overview
 
-## Features
-- **8-Direction Movement**: Arrow keys control character movement
-- **Ping-Pong Animation**: Cycles through frames 01→02→03→02→01 when moving
-- **Idle States**: Shows appropriate idle frame based on last movement direction
-- **Android-Ready Architecture**: Abstracted renderer for easy platform porting
-- **Orthogonal Projection**: Perfect for 2D sprite rendering
-- **Alpha Transparency**: Properly handles PNG transparency
+DodgingBullets is an isometric-style action game where the player navigates a tiled grass environment, shoots at turret enemies, and avoids obstacles. The game features a sophisticated collision system, camera controls, and visual effects.
 
-## Controls
-- Arrow keys: Move character in 8 directions
-- ESC: Quit game
+## Technical Architecture
+
+### Grid System & Collision Detection
+- **Grid Size**: 16x16 pixel cells for spatial partitioning
+- **Map Dimensions**: 2560x1440 pixels (160x90 cells)
+- **Collision Types**: Axis-independent detection allowing sliding along obstacles
+- **Spatial Queries**: Efficient grid-based lookups for collision detection
+
+### Dual Hitbox System
+The game uses two types of hitboxes for different collision purposes:
+
+#### Sprite Hitboxes (Visual Collision)
+- **Player**: 12 pixels wide, full sprite height
+- **Turret**: 64x64 pixels (full sprite size)
+- Used for bullet impacts and visual collision detection
+
+#### Movement Hitboxes (Terrain Blocking)
+- **Player**: 12 pixels wide, bottom 1/5th of sprite height
+- **Turret**: 64x32 pixels (lower half of sprite)
+- Used for terrain collision and movement blocking
+- Prevents sprites from overlapping solid objects
+
+### Movement System
+- **Controls**: WASD keys for directional movement
+- **Jumping**: Variable height control with spacebar
+- **Physics**: Smooth movement with collision response
+- **Sliding**: Players can slide along obstacles when hitting them at angles
+
+### Shooting System
+- **Control**: Mouse-based aiming and shooting
+- **Trajectory**: Bullets travel in straight lines toward mouse cursor position
+- **Angle Calculation**: Uses mouse position relative to player for bullet direction
+- **Damage**: 10 damage per bullet hit
+- **Visual**: Bright-colored bullets for gameplay clarity
+
+### Shell Casing System
+- **Physics**: Ejected shell casings with realistic trajectories
+- **Particles**: Fade-out animations over time
+- **Visual Effects**: Adds realism to shooting mechanics
+
+### Enemy System - Turrets
+- **Health**: 100 HP per turret
+- **Damage**: Takes 10 damage per bullet hit
+- **Destruction**: Requires 10 shots to destroy
+- **States**: Intact and destroyed visual states
+- **Hitboxes**: 64x64 sprite hitbox, 64x32 movement hitbox
+
+### Camera System
+- **Centering**: Camera follows player position
+- **Boundary Clamping**: Prevents camera from showing areas beyond map edges
+- **Map Bounds**: Camera clamped to 2560x1440 map dimensions
+- **Smooth Tracking**: Player remains centered in viewport
+
+### Rendering System
+- **Depth Sorting**: Sprites rendered based on Y-position for proper layering
+- **Isometric Layering**: Objects with higher Y-values render in front
+- **Background**: Seamlessly tiled grass textures
+- **Visual Contrast**: Darker backgrounds with brighter projectiles for clarity
+
+### Texture System
+- **Grass Background**: Procedurally generated seamless tiling textures
+- **Sprites**: Player, turret, bullet, and shell casing graphics
+- **Shadows**: Visual depth effects for sprites
+- **Optimization**: Efficient texture loading and rendering
+
+## File Structure
+- `src/main/java/` - Java source code
+- `src/main/resources/textures/` - Game textures and sprites
+- `pom.xml` - Maven build configuration
+- Generated textures created via Python scripts for seamless tiling
+
+## Build & Run
+```bash
+mvn compile exec:java
+```
+
+## Key Features
+- Grid-based collision detection with 16x16 pixel cells
+- Dual hitbox system for sprite and movement collision
+- Mouse-controlled shooting with angle-based trajectories
+- Camera system with boundary clamping
+- Turret enemies with health/damage mechanics
+- Shell casing particle effects
+- Depth-sorted isometric rendering
+- Seamless tiled background textures
+- WASD movement controls with jumping mechanics
+
+## Technical Notes
+- Uses LWJGL for OpenGL rendering
+- Efficient spatial partitioning via grid system
+- Axis-independent collision allows natural movement
+- Visual improvements include darker backgrounds and brighter bullets
+- Proper isometric depth sorting based on Y-position coordinates
+
 
 ## Running the Game
 ```bash
