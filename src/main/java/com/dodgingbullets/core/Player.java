@@ -28,8 +28,8 @@ public class Player {
     private static final long DAMAGE_FLASH_DURATION = 500; // 0.5 seconds
     
     // Ammo system
-    private int ammo = 5;
-    private static final int MAX_AMMO = 5;
+    private int ammo = 10;
+    private static final int MAX_AMMO = 10;
     private long lastAmmoRegenTime = 0;
     
     private Direction currentDirection = Direction.UP;

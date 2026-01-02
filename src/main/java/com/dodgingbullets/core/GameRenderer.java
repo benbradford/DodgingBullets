@@ -1,6 +1,7 @@
 package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
+import com.dodgingbullets.gameobjects.effects.Explosion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,10 +15,12 @@ public class GameRenderer {
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
     private Texture foliageTexture;
+    private Map<String, Texture> explosionTextures;
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
-                           Texture brokenTurretTexture, Texture vignetteTexture, Texture foliageTexture) {
+                           Texture brokenTurretTexture, Texture vignetteTexture, Texture foliageTexture,
+                           Map<String, Texture> explosionTextures) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -26,6 +29,7 @@ public class GameRenderer {
         this.brokenTurretTexture = brokenTurretTexture;
         this.vignetteTexture = vignetteTexture;
         this.foliageTexture = foliageTexture;
+        this.explosionTextures = explosionTextures;
     }
     
     public void render(Renderer renderer, GameLoop gameLoop) {
@@ -54,6 +58,16 @@ public class GameRenderer {
         // Render shell casings
         for (ShellCasing shell : gameLoop.getShells()) {
             renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
+        }
+        
+        // Render explosions on top of everything
+        for (Explosion explosion : gameLoop.getExplosions()) {
+            String textureName = explosion.getCurrentTexture();
+            if (textureName != null && explosionTextures.containsKey(textureName)) {
+                Texture explosionTexture = explosionTextures.get(textureName);
+                float size = explosion.getSize();
+                renderer.render(explosionTexture, explosion.getX() - size/2 - cameraX, explosion.getY() - size/2 - cameraY, size, size);
+            }
         }
         
         // Render UI
@@ -132,7 +146,7 @@ public class GameRenderer {
         float ammoBarX = player.getX() - ammoBarWidth/2 - cameraX;
         float ammoBarY = player.getY() - 55 - cameraY;
         
-        float ammoPercent = player.getAmmo() / 5.0f;
+        float ammoPercent = player.getAmmo() / 10.0f;
         
         renderer.renderRectOutline(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
         

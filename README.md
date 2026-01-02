@@ -45,6 +45,8 @@ The game now uses a modular object-oriented architecture:
 #### Core Classes
 - **GameObject** (abstract): Base class for all game entities with position and update logic
 - **EnemyObject** (abstract): Extends GameObject, base for all enemies with health system
+- **GameLoop**: Platform-independent game logic and state management
+- **GameRenderer**: Platform-independent rendering logic with depth sorting
 
 #### Interface System
 - **Renderable**: Objects that can be rendered with depth sorting
@@ -61,14 +63,18 @@ The game now uses a modular object-oriented architecture:
 
 #### Game Management
 - **GameObjectManager**: Handles collections of game objects with filtering by interface
-- **Interface-based interactions**: Game.java only uses interfaces, not concrete classes
+- **Interface-based interactions**: GameLoop only uses interfaces, not concrete classes
 - **Polymorphic arrays**: Ready for level loading with mixed enemy types
 
-### Grid System & Collision Detection
-- **Grid Size**: 16x16 pixel cells for spatial partitioning
+#### Platform Architecture
+- **GameLoop** (core): Contains all platform-independent game logic (player updates, AI, physics, collision detection)
+- **GameRenderer** (core): Contains all platform-independent rendering logic (depth sorting, UI, effects)
+- **Game** (desktop): Only handles desktop-specific concerns (GLFW window, input callbacks, texture loading)
+- **DesktopRenderer** (desktop): OpenGL-specific rendering implementation
+
+### Collision Detection
 - **Map Dimensions**: 2560x1440 pixels (160x90 cells)
 - **Collision Types**: Axis-independent detection allowing sliding along obstacles
-- **Spatial Queries**: Efficient grid-based lookups for collision detection
 
 ### Dual Hitbox System
 The game uses two types of hitboxes for different collision purposes:
@@ -136,13 +142,13 @@ The game uses two types of hitboxes for different collision purposes:
 - **Vignette Overlay**: Screen edge darkening effect with damage feedback
 
 ## File Structure
-- `src/main/java/com/dodgingbullets/core/` - Core game classes (Player, Bullet, etc.)
+- `src/main/java/com/dodgingbullets/core/` - Core game classes (Player, Bullet, GameLoop, GameRenderer)
 - `src/main/java/com/dodgingbullets/gameobjects/` - GameObject system interfaces and base classes
 - `src/main/java/com/dodgingbullets/gameobjects/enemies/` - Enemy implementations (GunTurret)
 - `src/main/java/com/dodgingbullets/desktop/` - Desktop-specific implementation (Game, DesktopRenderer)
 - `src/main/resources/textures/` - Game textures and sprites
+- `assets/` - Original texture assets
 - `pom.xml` - Maven build configuration
-- Generated textures created via Python scripts for seamless tiling
 
 ## Build & Run
 ```bash
@@ -233,7 +239,7 @@ mvn compile exec:java
 - Add sound effects and background music
 
 ## Architecture Benefits
-The abstracted Renderer interface allows easy swapping between desktop OpenGL and future Android OpenGL implementations without changing core game logic. The modular GameObject system with interface-based design makes it trivial to add new enemy types with different behavior combinations. The system is now ready for level loading where different enemy types can be instantiated from file data and managed polymorphically.
+The abstracted Renderer interface allows easy swapping between desktop OpenGL and future Android OpenGL implementations without changing core game logic. The modular GameObject system with interface-based design makes it trivial to add new enemy types with different behavior combinations. The separation of GameLoop (logic) and GameRenderer (rendering) from platform-specific code means the same core game can run on desktop and Android with only platform-specific input/rendering implementations. The system is now ready for level loading where different enemy types can be instantiated from file data and managed polymorphically.
 
 ## Next Development Priority
 **Level Loading System**: The GameObject architecture is complete and ready for implementing a level loading system that can read enemy positions and types from configuration files, instantiate the appropriate GameObject implementations, and manage them through the existing GameObjectManager.

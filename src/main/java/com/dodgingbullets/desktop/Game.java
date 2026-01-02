@@ -28,6 +28,7 @@ public class Game {
     private Texture vignetteTexture;
     private Texture foliageTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
+    private Map<String, Texture> explosionTextures = new HashMap<>();
     private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -86,7 +87,7 @@ public class Game {
         
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
-                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture);
+                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture, explosionTextures);
         
         gameLoop = new GameLoop();
         gameLoop.initialize(renderer);
@@ -142,6 +143,17 @@ public class Game {
         turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("src/main/resources/textures/turret_sw.png"));
         turretTextures.put(Direction.LEFT, renderer.loadTexture("src/main/resources/textures/turret_w.png"));
         turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("src/main/resources/textures/turret_nw.png"));
+        
+        // Load explosion textures
+        explosionTextures.put("explosionanim_1_0.png", renderer.loadTexture("assets/explosionanim_1_0.png"));
+        explosionTextures.put("explosionanim_1_17.png", renderer.loadTexture("assets/explosionanim_1_17.png"));
+        explosionTextures.put("explosionanim_1_34.png", renderer.loadTexture("assets/explosionanim_1_34.png"));
+        explosionTextures.put("explosionanim_1_51.png", renderer.loadTexture("assets/explosionanim_1_51.png"));
+        explosionTextures.put("explosionanim_1_68.png", renderer.loadTexture("assets/explosionanim_1_68.png"));
+        explosionTextures.put("explosionanim_1_85.png", renderer.loadTexture("assets/explosionanim_1_85.png"));
+        explosionTextures.put("explosionanim_1_102.png", renderer.loadTexture("assets/explosionanim_1_102.png"));
+        explosionTextures.put("explosionanim_1_119.png", renderer.loadTexture("assets/explosionanim_1_119.png"));
+        explosionTextures.put("explosionanim_1_136.png", renderer.loadTexture("assets/explosionanim_1_136.png"));
     }
     
     private void loop() {

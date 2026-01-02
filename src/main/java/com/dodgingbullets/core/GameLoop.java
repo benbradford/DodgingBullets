@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.environment.Foliage;
+import com.dodgingbullets.gameobjects.effects.Explosion;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -16,6 +17,7 @@ public class GameLoop {
     private List<ShellCasing> shells = new ArrayList<>();
     private List<GameObject> turrets = new ArrayList<>();
     private List<GameObject> foliages = new ArrayList<>();
+    private List<Explosion> explosions = new ArrayList<>();
     private float cameraX = 0;
     private float cameraY = 0;
     
@@ -24,6 +26,10 @@ public class GameLoop {
     private static final float MAP_HEIGHT = 1440;
     private static final float SCREEN_WIDTH = 704; // Updated for 10% zoom out
     private static final float SCREEN_HEIGHT = 396; // Updated for 10% zoom out
+    
+    // Window constants for mouse coordinate scaling
+    private static final float WINDOW_WIDTH = 640;
+    private static final float WINDOW_HEIGHT = 360;
     
     public void initialize(Renderer renderer) {
         // Initialize player
@@ -69,8 +75,12 @@ public class GameLoop {
         
         // Handle player shooting
         if (mousePressed && player.canShoot()) {
-            double worldMouseX = mouseX + cameraX;
-            double worldMouseY = mouseY + cameraY;
+            // Scale mouse coordinates from window size to game world size
+            double scaledMouseX = mouseX * (SCREEN_WIDTH / WINDOW_WIDTH);
+            double scaledMouseY = mouseY * (SCREEN_HEIGHT / WINDOW_HEIGHT);
+            
+            double worldMouseX = scaledMouseX + cameraX;
+            double worldMouseY = scaledMouseY + cameraY;
             
             double deltaX = worldMouseX - player.getX();
             double deltaY = worldMouseY - player.getY();
@@ -108,6 +118,9 @@ public class GameLoop {
         // Update bullets and check collisions
         updateBullets();
         
+        // Update explosions
+        updateExplosions();
+        
         // Update shell casings
         updateShells();
     }
@@ -134,7 +147,14 @@ public class GameLoop {
                 for (GameObject turret : turrets) {
                     if (turret instanceof Positionable && ((Positionable) turret).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
                         if (turret instanceof Damageable) {
-                            ((Damageable) turret).takeDamage(10);
+                            Damageable damageableTurret = (Damageable) turret;
+                            boolean wasDestroyed = damageableTurret.isDestroyed();
+                            damageableTurret.takeDamage(10);
+                            
+                            // Create explosion if turret was just destroyed
+                            if (!wasDestroyed && damageableTurret.isDestroyed()) {
+                                explosions.add(new Explosion(turret.getX(), turret.getY()));
+                            }
                         }
                         bulletIter.remove();
                         break;
@@ -167,6 +187,23 @@ public class GameLoop {
         }
     }
     
+    private void updateExplosions() {
+        Iterator<Explosion> explosionIter = explosions.iterator();
+        while (explosionIter.hasNext()) {
+            Explosion explosion = explosionIter.next();
+            explosion.update(0.016f); // Assuming ~60 FPS
+            
+            // Check if player is in explosion area
+            if (explosion.checkSpriteCollision(player.getX() - 6, player.getY() - 32, 12, 64)) {
+                player.takeDamage(1);
+            }
+            
+            if (!explosion.isActive()) {
+                explosionIter.remove();
+            }
+        }
+    }
+    
     private boolean isPlayerHit(float bulletX, float bulletY) {
         return bulletX >= player.getX() - 6 && bulletX <= player.getX() + 6 && 
                bulletY >= player.getY() - 32 && bulletY <= player.getY() + 32;
@@ -178,6 +215,7 @@ public class GameLoop {
     public List<ShellCasing> getShells() { return shells; }
     public List<GameObject> getTurrets() { return turrets; }
     public List<GameObject> getFoliages() { return foliages; }
+    public List<Explosion> getExplosions() { return explosions; }
     public float getCameraX() { return cameraX; }
     public float getCameraY() { return cameraY; }
     public float getMapWidth() { return MAP_WIDTH; }
