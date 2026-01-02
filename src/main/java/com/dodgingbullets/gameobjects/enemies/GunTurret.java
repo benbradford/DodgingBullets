@@ -2,6 +2,7 @@ package com.dodgingbullets.gameobjects.enemies;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.core.Direction;
+import com.dodgingbullets.core.Vec2;
 
 public class GunTurret extends EnemyObject implements Shooter, Trackable, Positionable {
     private Direction facingDirection;
@@ -38,6 +39,7 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     
     @Override
     public void update(float playerX, float playerY) {
+        Vec2 playerPos = new Vec2(playerX, playerY);
         boolean playerInRange = canSeePlayer(playerX, playerY);
         
         if (playerInRange && (!isIdle || canSeePlayerInCurrentDirection(playerX, playerY))) {
@@ -45,9 +47,8 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
                 isIdle = false;
             }
             
-            float deltaX = playerX - x;
-            float deltaY = playerY - y;
-            double angle = Math.atan2(deltaY, deltaX);
+            Vec2 delta = playerPos.subtract(position);
+            double angle = delta.angle();
             double degrees = Math.toDegrees(angle);
             if (degrees < 0) degrees += 360;
             
@@ -89,14 +90,14 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     
     @Override
     public boolean checkSpriteCollision(float x, float y, float width, float height) {
-        return x < this.x + 32 && x + width > this.x - 32 && 
-               y < this.y + 32 && y + height > this.y - 32;
+        return x < position.x() + 32 && x + width > position.x() - 32 && 
+               y < position.y() + 32 && y + height > position.y() - 32;
     }
     
     @Override
     public boolean checkMovementCollision(float x, float y, float width, float height) {
-        return x < this.x + 32 && x + width > this.x - 32 && 
-               y < this.y && y + height > this.y - 32;
+        return x < position.x() + 32 && x + width > position.x() - 32 && 
+               y < position.y() && y + height > position.y() - 32;
     }
     
     @Override
@@ -122,17 +123,14 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     
     @Override
     public boolean canSeePlayer(float playerX, float playerY) {
-        float deltaX = playerX - x;
-        float deltaY = playerY - y;
-        float distance = (float)Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        return distance <= MAX_SIGHT;
+        return position.distance(new Vec2(playerX, playerY)) <= MAX_SIGHT;
     }
     
     @Override
     public boolean canSeePlayerInCurrentDirection(float playerX, float playerY) {
-        float deltaX = playerX - x;
-        float deltaY = playerY - y;
-        double angle = Math.atan2(deltaY, deltaX);
+        Vec2 playerPos = new Vec2(playerX, playerY);
+        Vec2 delta = playerPos.subtract(position);
+        double angle = delta.angle();
         double degrees = Math.toDegrees(angle);
         if (degrees < 0) degrees += 360;
         
@@ -156,24 +154,29 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     
     @Override
     public boolean isInSpriteHitbox(float bulletX, float bulletY) {
-        return bulletX >= x - 32 && bulletX <= x + 32 && 
-               bulletY >= y - 32 && bulletY <= y + 32;
+        Vec2 bulletPos = new Vec2(bulletX, bulletY);
+        Vec2 halfSize = new Vec2(32, 32);
+        Vec2 min = position.subtract(halfSize);
+        Vec2 max = position.add(halfSize);
+        return bulletPos.x() >= min.x() && bulletPos.x() <= max.x() && 
+               bulletPos.y() >= min.y() && bulletPos.y() <= max.y();
     }
     
     @Override
     public float[] getBarrelPosition() {
-        float barrelX = x, barrelY = y;
+        Vec2 barrelOffset = new Vec2(0, 0);
         switch (facingDirection) {
-            case UP: barrelX += 0; barrelY += 32; break;
-            case DOWN: barrelX += 0; barrelY -= 32; break;
-            case LEFT: barrelX -= 45; barrelY += 7; break;
-            case RIGHT: barrelX += 45; barrelY += 8; break;
-            case UP_LEFT: barrelX -= 30; barrelY += 28; break;
-            case UP_RIGHT: barrelX += 30; barrelY += 28; break;
-            case DOWN_LEFT: barrelX -= 42; barrelY -= 22; break;
-            case DOWN_RIGHT: barrelX += 42; barrelY -= 22; break;
+            case UP: barrelOffset = new Vec2(0, 32); break;
+            case DOWN: barrelOffset = new Vec2(0, -32); break;
+            case LEFT: barrelOffset = new Vec2(-45, 7); break;
+            case RIGHT: barrelOffset = new Vec2(45, 8); break;
+            case UP_LEFT: barrelOffset = new Vec2(-30, 28); break;
+            case UP_RIGHT: barrelOffset = new Vec2(30, 28); break;
+            case DOWN_LEFT: barrelOffset = new Vec2(-42, -22); break;
+            case DOWN_RIGHT: barrelOffset = new Vec2(42, -22); break;
         }
-        return new float[]{barrelX, barrelY};
+        Vec2 barrelPos = position.add(barrelOffset);
+        return new float[]{barrelPos.x(), barrelPos.y()};
     }
     
     private Direction getNextClockwiseDirection(Direction current) {

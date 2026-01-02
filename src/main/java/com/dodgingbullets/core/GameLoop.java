@@ -11,11 +11,10 @@ public class GameLoop {
     private Player player;
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
-    private List<GameObject> turrets = new ArrayList<>();
+    private List<GameObject> gameObjects = new ArrayList<>();
     private List<GameObject> foliages = new ArrayList<>();
     private List<Explosion> explosions = new ArrayList<>();
-    private float cameraX = 0;
-    private float cameraY = 0;
+    private Vec2 camera = new Vec2(0, 0);
     
     private CollisionSystem collisionSystem = new CollisionSystem();
     private InputHandler inputHandler = new InputHandler();
@@ -26,12 +25,12 @@ public class GameLoop {
         player.loadTextures(renderer);
         
         // Initialize game objects
-        turrets = GameObjectFactory.createTurrets();
+        gameObjects = GameObjectFactory.createTurrets();
         foliages = GameObjectFactory.createFoliage();
         
         // Set up collision objects for player
         List<GameObject> allCollidables = new ArrayList<>();
-        allCollidables.addAll(turrets);
+        allCollidables.addAll(gameObjects);
         allCollidables.addAll(foliages);
         player.setCollidableObjects(allCollidables);
     }
@@ -45,7 +44,7 @@ public class GameLoop {
         
         // Update camera
         updateCamera();
-        inputHandler.updateCamera(cameraX, cameraY);
+        inputHandler.updateCamera(camera.x(), camera.y());
         
         // Update game objects
         updateTurrets();
@@ -60,17 +59,18 @@ public class GameLoop {
     }
     
     private void updateCamera() {
-        float desiredCameraX = player.getX() - GameConfig.SCREEN_WIDTH / 2;
-        float desiredCameraY = player.getY() - GameConfig.SCREEN_HEIGHT / 2;
+        Vec2 playerPos = player.getPosition();
+        Vec2 screenCenter = new Vec2(GameConfig.SCREEN_WIDTH / 2, GameConfig.SCREEN_HEIGHT / 2);
+        Vec2 desiredCamera = playerPos.subtract(screenCenter);
         
-        cameraX = Math.max(0, Math.min(GameConfig.MAP_WIDTH - GameConfig.SCREEN_WIDTH, desiredCameraX));
-        cameraY = Math.max(0, Math.min(GameConfig.MAP_HEIGHT - GameConfig.SCREEN_HEIGHT, desiredCameraY));
+        Vec2 mapBounds = new Vec2(GameConfig.MAP_WIDTH - GameConfig.SCREEN_WIDTH, GameConfig.MAP_HEIGHT - GameConfig.SCREEN_HEIGHT);
+        camera = desiredCamera.clamp(new Vec2(0, 0), mapBounds);
     }
     
     private void updateTurrets() {
-        for (GameObject turret : turrets) {
-            if (turret instanceof Trackable) {
-                ((Trackable) turret).update(player.getX(), player.getY());
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Trackable) {
+                ((Trackable) gameObject).update(player.getX(), player.getY());
             }
         }
     }
@@ -91,22 +91,22 @@ public class GameLoop {
             shells.add(new ShellCasing(player.getX(), player.getY()));
         }
         
-        // Handle turret shooting
-        for (GameObject turret : turrets) {
-            if (turret instanceof Trackable && turret instanceof Shooter && 
-                turret instanceof Positionable && turret instanceof Damageable) {
+        // Handle shooting from game objects
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Trackable && gameObject instanceof Shooter && 
+                gameObject instanceof Positionable && gameObject instanceof Damageable) {
                 
-                Trackable trackable = (Trackable) turret;
-                Shooter shooter = (Shooter) turret;
-                Positionable positionable = (Positionable) turret;
-                Damageable damageable = (Damageable) turret;
+                Trackable trackable = (Trackable) gameObject;
+                Shooter shooter = (Shooter) gameObject;
+                Positionable positionable = (Positionable) gameObject;
+                Damageable damageable = (Damageable) gameObject;
                 
                 if (!damageable.isDestroyed() && trackable.canSeePlayer(player.getX(), player.getY()) && 
                     trackable.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && shooter.canShoot()) {
                     
                     float[] barrelPos = positionable.getBarrelPosition();
-                    double deltaX = player.getX() - turret.getX();
-                    double deltaY = player.getY() - turret.getY();
+                    double deltaX = player.getX() - gameObject.getX();
+                    double deltaY = player.getY() - gameObject.getY();
                     double angleToPlayer = Math.atan2(deltaY, deltaX);
                     bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false));
                     shooter.shoot(player.getX(), player.getY());
@@ -122,7 +122,7 @@ public class GameLoop {
             bullet.update();
         }
         
-        collisionSystem.checkBulletCollisions(bullets, player, turrets, foliages, explosions);
+        collisionSystem.checkBulletCollisions(bullets, player, gameObjects, foliages, explosions);
     }
     
     private void updateExplosions() {
@@ -154,11 +154,12 @@ public class GameLoop {
     public Player getPlayer() { return player; }
     public List<Bullet> getBullets() { return bullets; }
     public List<ShellCasing> getShells() { return shells; }
-    public List<GameObject> getTurrets() { return turrets; }
+    public List<GameObject> getGameObjects() { return gameObjects; }
     public List<GameObject> getFoliages() { return foliages; }
     public List<Explosion> getExplosions() { return explosions; }
-    public float getCameraX() { return cameraX; }
-    public float getCameraY() { return cameraY; }
+    public float getCameraX() { return camera.x(); }
+    public float getCameraY() { return camera.y(); }
+    public Vec2 getCamera() { return camera; }
     public float getMapWidth() { return GameConfig.MAP_WIDTH; }
     public float getMapHeight() { return GameConfig.MAP_HEIGHT; }
     public float getScreenWidth() { return GameConfig.SCREEN_WIDTH; }

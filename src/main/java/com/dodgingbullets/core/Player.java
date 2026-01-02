@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.List;
 
 public class Player {
-    private float x, y;
+    private Vec2 position;
     private float jumpOffset = 0;
     private float jumpVelocity = 0;
     private boolean isJumping = false;
@@ -47,8 +47,7 @@ public class Player {
     private Map<String, Texture> textures = new HashMap<>();
     
     public Player(float x, float y) {
-        this.x = x;
-        this.y = y;
+        this.position = new Vec2(x, y);
     }
     
     public void setTurret(GameObject turret) {
@@ -59,14 +58,14 @@ public class Player {
         this.collidableObjects = objects;
     }
     
-    private boolean wouldCollideWithObjects(float newX, float newY) {
+    private boolean wouldCollideWithObjects(Vec2 newPos) {
         if (collidableObjects == null) return false;
         
         // Player movement hitbox (12 pixels wide, bottom 1/5th of sprite height)
         float playerWidth = 12;
         float playerHeight = 12.8f; // Bottom 1/5th of 64-pixel sprite
-        float playerLeft = newX - 6;
-        float playerBottom = newY - 32;
+        float playerLeft = newPos.x() - 6;
+        float playerBottom = newPos.y() - 32;
         
         for (GameObject obj : collidableObjects) {
             if (obj instanceof Collidable && ((Collidable) obj).checkMovementCollision(playerLeft, playerBottom, playerWidth, playerHeight)) {
@@ -88,7 +87,7 @@ public class Player {
     
     public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld) {
         // Store previous position for boundary checking
-        float prevX = x, prevY = y;
+        Vec2 prevPos = position;
         
         // Handle jump start immediately on press
         if (jumpPressed && !isJumping) {
@@ -131,82 +130,74 @@ public class Player {
         
         boolean wasMoving = isMoving;
         isMoving = false;
+        Vec2 movement = new Vec2(0, 0);
         
         if (keys[0]) { // W (up)
             if (keys[2]) { // A (left)
                 currentDirection = Direction.UP_LEFT;
-                y += 2;
-                x -= 2;
+                movement = new Vec2(-2, 2);
                 isMoving = true;
             } else if (keys[3]) { // D (right)
                 currentDirection = Direction.UP_RIGHT;
-                y += 2;
-                x += 2;
+                movement = new Vec2(2, 2);
                 isMoving = true;
             } else {
                 currentDirection = Direction.UP;
-                y += 2;
+                movement = new Vec2(0, 2);
                 isMoving = true;
             }
         } else if (keys[1]) { // S (down)
             if (keys[2]) { // A (left)
                 currentDirection = Direction.DOWN_LEFT;
-                y -= 2;
-                x -= 2;
+                movement = new Vec2(-2, -2);
                 isMoving = true;
             } else if (keys[3]) { // D (right)
                 currentDirection = Direction.DOWN_RIGHT;
-                y -= 2;
-                x += 2;
+                movement = new Vec2(2, -2);
                 isMoving = true;
             } else {
                 currentDirection = Direction.DOWN;
-                y -= 2;
+                movement = new Vec2(0, -2);
                 isMoving = true;
             }
         } else if (keys[2]) { // A (left)
             currentDirection = Direction.LEFT;
-            x -= 2;
+            movement = new Vec2(-2, 0);
             isMoving = true;
         } else if (keys[3]) { // D (right)
             currentDirection = Direction.RIGHT;
-            x += 2;
+            movement = new Vec2(2, 0);
             isMoving = true;
         }
         
+        Vec2 newPos = position.add(movement);
+        
         // Boundary checking - map is 4x screen size (2560x1440)
-        float mapWidth = 2560;
-        float mapHeight = 1440;
-        float margin = 32; // Half player width for proper collision
+        Vec2 mapBounds = new Vec2(GameConfig.MAP_WIDTH - 32, GameConfig.MAP_HEIGHT - 32);
+        Vec2 minBounds = new Vec2(32, 32);
+        newPos = newPos.clamp(minBounds, mapBounds);
         
-        // Check X boundary separately
-        if (x < margin || x > mapWidth - margin) {
-            x = prevX; // Revert X movement only
+        // Check collision with objects - X axis first
+        Vec2 xOnlyPos = new Vec2(newPos.x(), prevPos.y());
+        if (wouldCollideWithObjects(xOnlyPos)) {
+            newPos = new Vec2(prevPos.x(), newPos.y()); // Revert X movement
         }
         
-        // Check Y boundary separately  
-        if (y < margin || y > mapHeight - margin) {
-            y = prevY; // Revert Y movement only
-        }
-        
-        // Check collision with objects movement hitbox - X axis
-        if (wouldCollideWithObjects(x, prevY)) {
-            x = prevX; // Revert X movement only
-        }
-        
-        // Check collision with objects movement hitbox - Y axis
-        if (wouldCollideWithObjects(prevX, y)) {
-            y = prevY; // Revert Y movement only
+        // Check collision with objects - Y axis
+        Vec2 yOnlyPos = new Vec2(prevPos.x(), newPos.y());
+        if (wouldCollideWithObjects(yOnlyPos)) {
+            newPos = new Vec2(newPos.x(), prevPos.y()); // Revert Y movement
         }
         
         // Final check - if both movements together cause collision, revert both
-        if (wouldCollideWithObjects(x, y)) {
-            x = prevX;
-            y = prevY;
+        if (wouldCollideWithObjects(newPos)) {
+            newPos = prevPos;
         }
         
+        position = newPos;
+        
         // Update movement state based on final position
-        if (x == prevX && y == prevY) {
+        if (position.equals(prevPos)) {
             isMoving = false; // No movement occurred
         }
         
@@ -309,8 +300,9 @@ public class Player {
         }
     }
     
-    public float getX() { return x; }
-    public float getY() { return y; }
+    public float getX() { return position.x(); }
+    public float getY() { return position.y(); }
+    public Vec2 getPosition() { return position; }
     public float getJumpOffset() { return jumpOffset; }
     public Direction getCurrentDirection() { return currentDirection; }
     public int getHealth() { return health; }
@@ -353,17 +345,17 @@ public class Player {
         }
         
         // Approximate gun barrel positions based on direction
-        float gunX = x, gunY = y;
+        Vec2 gunPos = position;
         switch (displayDirection) {
-            case UP: gunX += 8; gunY += 20; break;
-            case DOWN: gunX -= 8; gunY -= 20; break;
-            case LEFT: gunX -= 20; gunY += 2; break;  // Raised from -5 to +2
-            case RIGHT: gunX += 20; gunY += 2; break; // Raised from -5 to +2
-            case UP_LEFT: gunX -= 12; gunY += 16; break;
-            case UP_RIGHT: gunX += 12; gunY += 16; break;
-            case DOWN_LEFT: gunX -= 12; gunY -= 16; break;
-            case DOWN_RIGHT: gunX += 12; gunY -= 16; break;
+            case UP: gunPos = gunPos.add(new Vec2(8, 20)); break;
+            case DOWN: gunPos = gunPos.add(new Vec2(-8, -20)); break;
+            case LEFT: gunPos = gunPos.add(new Vec2(-20, 2)); break;
+            case RIGHT: gunPos = gunPos.add(new Vec2(20, 2)); break;
+            case UP_LEFT: gunPos = gunPos.add(new Vec2(-12, 16)); break;
+            case UP_RIGHT: gunPos = gunPos.add(new Vec2(12, 16)); break;
+            case DOWN_LEFT: gunPos = gunPos.add(new Vec2(-12, -16)); break;
+            case DOWN_RIGHT: gunPos = gunPos.add(new Vec2(12, -16)); break;
         }
-        return new float[]{gunX, gunY};
+        return new float[]{gunPos.x(), gunPos.y()};
     }
 }

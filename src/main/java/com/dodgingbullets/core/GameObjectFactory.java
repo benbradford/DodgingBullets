@@ -10,11 +10,11 @@ import java.util.List;
 public class GameObjectFactory {
     
     public static List<GameObject> createTurrets() {
-        List<GameObject> turrets = new ArrayList<>();
-        turrets.add(new GunTurret(800, 150));
-        turrets.add(new GunTurret(1200, 400));
-        turrets.add(new GunTurret(600, 600));
-        return turrets;
+        List<GameObject> gameObjects = new ArrayList<>();
+        gameObjects.add(new GunTurret(800, 150));
+        gameObjects.add(new GunTurret(1200, 400));
+        gameObjects.add(new GunTurret(600, 600));
+        return gameObjects;
     }
     
     public static List<GameObject> createFoliage() {

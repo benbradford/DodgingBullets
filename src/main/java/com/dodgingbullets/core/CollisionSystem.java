@@ -8,7 +8,7 @@ import java.util.List;
 
 public class CollisionSystem {
     
-    public void checkBulletCollisions(List<Bullet> bullets, Player player, List<GameObject> turrets, 
+    public void checkBulletCollisions(List<Bullet> bullets, Player player, List<GameObject> gameObjects, 
                                     List<GameObject> foliages, List<Explosion> explosions) {
         Iterator<Bullet> bulletIter = bullets.iterator();
         while (bulletIter.hasNext()) {
@@ -20,8 +20,8 @@ public class CollisionSystem {
                 continue;
             }
             
-            // Check turret collision (player bullets only)
-            if (bullet.isPlayerBullet() && checkTurretCollision(bullet, turrets, explosions)) {
+            // Check game object collision (player bullets only)
+            if (bullet.isPlayerBullet() && checkGameObjectCollision(bullet, gameObjects, explosions)) {
                 bulletIter.remove();
                 continue;
             }
@@ -57,17 +57,17 @@ public class CollisionSystem {
         return false;
     }
     
-    private boolean checkTurretCollision(Bullet bullet, List<GameObject> turrets, List<Explosion> explosions) {
-        for (GameObject turret : turrets) {
-            if (turret instanceof Positionable && 
-                ((Positionable) turret).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
-                if (turret instanceof Damageable) {
-                    Damageable damageable = (Damageable) turret;
+    private boolean checkGameObjectCollision(Bullet bullet, List<GameObject> gameObjects, List<Explosion> explosions) {
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Positionable && 
+                ((Positionable) gameObject).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
+                if (gameObject instanceof Damageable) {
+                    Damageable damageable = (Damageable) gameObject;
                     boolean wasDestroyed = damageable.isDestroyed();
                     damageable.takeDamage(GameConfig.PLAYER_DAMAGE);
                     
                     if (!wasDestroyed && damageable.isDestroyed()) {
-                        explosions.add(new Explosion(turret.getX(), turret.getY()));
+                        explosions.add(new Explosion(gameObject.getX(), gameObject.getY()));
                     }
                 }
                 return true;

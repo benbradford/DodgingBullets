@@ -46,13 +46,13 @@ public class Explosion extends GameObject implements Renderable, Collidable {
     
     @Override
     public float getRenderY() {
-        return y + 1000; // Render on top of everything
+        return position.y() + 1000; // Render on top of everything
     }
     
     @Override
     public boolean checkSpriteCollision(float x, float y, float width, float height) {
-        return x < this.x + SIZE/2 && x + width > this.x - SIZE/2 && 
-               y < this.y + SIZE/2 && y + height > this.y - SIZE/2;
+        return x < position.x() + SIZE/2 && x + width > position.x() - SIZE/2 && 
+               y < position.y() + SIZE/2 && y + height > position.y() - SIZE/2;
     }
     
     @Override

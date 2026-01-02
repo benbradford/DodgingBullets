@@ -89,7 +89,7 @@ public class GameRenderer {
         // Create list of all objects for depth sorting (including player)
         List<Object> allObjects = new ArrayList<>();
         allObjects.add(player);
-        allObjects.addAll(gameLoop.getTurrets());
+        allObjects.addAll(gameLoop.getGameObjects());
         allObjects.addAll(gameLoop.getFoliages());
         
         // Sort all objects by Y position for depth (lower Y renders first/behind, higher Y renders last/on top)

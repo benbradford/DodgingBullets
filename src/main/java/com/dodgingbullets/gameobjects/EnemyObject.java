@@ -30,6 +30,6 @@ public abstract class EnemyObject extends GameObject implements Renderable, Coll
     
     @Override
     public float getRenderY() {
-        return y;
+        return position.y();
     }
 }
