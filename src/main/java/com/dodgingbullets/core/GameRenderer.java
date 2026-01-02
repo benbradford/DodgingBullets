@@ -166,18 +166,16 @@ public class GameRenderer {
     }
     
     private void renderTiledBackground(Renderer renderer, float cameraX, float cameraY, float mapWidth, float mapHeight) {
-        int tileSize = 64;
-        
-        int startTileX = Math.max(0, (int)(cameraX / tileSize) - 1);
-        int startTileY = Math.max(0, (int)(cameraY / tileSize) - 1);
-        int endTileX = Math.min((int)(mapWidth / tileSize), startTileX + (704 / tileSize) + 3);
-        int endTileY = Math.min((int)(mapHeight / tileSize), startTileY + (396 / tileSize) + 3);
+        int startTileX = Math.max(0, (int)(cameraX / GameConfig.TILE_SIZE) - 1);
+        int startTileY = Math.max(0, (int)(cameraY / GameConfig.TILE_SIZE) - 1);
+        int endTileX = Math.min((int)(mapWidth / GameConfig.TILE_SIZE), startTileX + (int)(GameConfig.SCREEN_WIDTH / GameConfig.TILE_SIZE) + 3);
+        int endTileY = Math.min((int)(mapHeight / GameConfig.TILE_SIZE), startTileY + (int)(GameConfig.SCREEN_HEIGHT / GameConfig.TILE_SIZE) + 3);
         
         for (int x = startTileX; x < endTileX; x++) {
             for (int y = startTileY; y < endTileY; y++) {
-                float worldX = x * tileSize;
-                float worldY = y * tileSize;
-                renderer.render(grassTexture, worldX - cameraX, worldY - cameraY, tileSize, tileSize);
+                float worldX = x * GameConfig.TILE_SIZE;
+                float worldY = y * GameConfig.TILE_SIZE;
+                renderer.render(grassTexture, worldX - cameraX, worldY - cameraY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
             }
         }
     }

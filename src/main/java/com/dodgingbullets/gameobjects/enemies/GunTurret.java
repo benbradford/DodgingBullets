@@ -11,7 +11,6 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     private boolean isIdle = true;
     private long lastDirectionChange = 0;
     private static final long IDLE_ROTATION_INTERVAL = 2000;
-    private static final int BULLET_DAMAGE = 10;
     private static final long DAMAGE_FLASH_DURATION = 100;
     private static final long FLASH_INTERVAL = 50; // Flash every 50ms
     

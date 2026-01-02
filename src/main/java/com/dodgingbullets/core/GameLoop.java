@@ -1,15 +1,11 @@
 package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
-import com.dodgingbullets.gameobjects.enemies.GunTurret;
-import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 public class GameLoop {
     private Player player;
@@ -21,32 +17,17 @@ public class GameLoop {
     private float cameraX = 0;
     private float cameraY = 0;
     
-    // Game constants
-    private static final float MAP_WIDTH = 2560;
-    private static final float MAP_HEIGHT = 1440;
-    private static final float SCREEN_WIDTH = 704; // Updated for 10% zoom out
-    private static final float SCREEN_HEIGHT = 396; // Updated for 10% zoom out
-    
-    // Window constants for mouse coordinate scaling
-    private static final float WINDOW_WIDTH = 640;
-    private static final float WINDOW_HEIGHT = 360;
+    private CollisionSystem collisionSystem = new CollisionSystem();
+    private InputHandler inputHandler = new InputHandler();
     
     public void initialize(Renderer renderer) {
         // Initialize player
-        player = new Player(320, 180);
+        player = GameObjectFactory.createPlayer();
         player.loadTextures(renderer);
         
-        // Initialize turrets at different locations
-        turrets.add(new GunTurret(800, 150));
-        turrets.add(new GunTurret(1200, 400));
-        turrets.add(new GunTurret(600, 600));
-        
-        // Initialize foliage
-        foliages.add(new Foliage(400, 300));
-        foliages.add(new Foliage(1000, 200));
-        foliages.add(new Foliage(1500, 800));
-        foliages.add(new Foliage(200, 900));
-        foliages.add(new Foliage(1800, 600));
+        // Initialize game objects
+        turrets = GameObjectFactory.createTurrets();
+        foliages = GameObjectFactory.createFoliage();
         
         // Set up collision objects for player
         List<GameObject> allCollidables = new ArrayList<>();
@@ -56,34 +37,49 @@ public class GameLoop {
     }
     
     public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, double mouseX, double mouseY) {
+        // Process input
+        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseX, mouseY);
+        
         // Update player
-        player.update(keys, jumpPressed, jumpHeld);
+        player.update(input.keys, input.jumpPressed, input.jumpHeld);
         
-        // Update camera to follow player with map edge clamping
-        float desiredCameraX = player.getX() - SCREEN_WIDTH / 2;
-        float desiredCameraY = player.getY() - SCREEN_HEIGHT / 2;
+        // Update camera
+        updateCamera();
+        inputHandler.updateCamera(cameraX, cameraY);
         
-        cameraX = Math.max(0, Math.min(MAP_WIDTH - SCREEN_WIDTH, desiredCameraX));
-        cameraY = Math.max(0, Math.min(MAP_HEIGHT - SCREEN_HEIGHT, desiredCameraY));
+        // Update game objects
+        updateTurrets();
         
-        // Update turrets
+        // Handle shooting
+        handleShooting(input);
+        
+        // Update and check collisions
+        updateBullets();
+        updateExplosions();
+        updateShells();
+    }
+    
+    private void updateCamera() {
+        float desiredCameraX = player.getX() - GameConfig.SCREEN_WIDTH / 2;
+        float desiredCameraY = player.getY() - GameConfig.SCREEN_HEIGHT / 2;
+        
+        cameraX = Math.max(0, Math.min(GameConfig.MAP_WIDTH - GameConfig.SCREEN_WIDTH, desiredCameraX));
+        cameraY = Math.max(0, Math.min(GameConfig.MAP_HEIGHT - GameConfig.SCREEN_HEIGHT, desiredCameraY));
+    }
+    
+    private void updateTurrets() {
         for (GameObject turret : turrets) {
             if (turret instanceof Trackable) {
                 ((Trackable) turret).update(player.getX(), player.getY());
             }
         }
-        
+    }
+    
+    private void handleShooting(InputState input) {
         // Handle player shooting
-        if (mousePressed && player.canShoot()) {
-            // Scale mouse coordinates from window size to game world size
-            double scaledMouseX = mouseX * (SCREEN_WIDTH / WINDOW_WIDTH);
-            double scaledMouseY = mouseY * (SCREEN_HEIGHT / WINDOW_HEIGHT);
-            
-            double worldMouseX = scaledMouseX + cameraX;
-            double worldMouseY = scaledMouseY + cameraY;
-            
-            double deltaX = worldMouseX - player.getX();
-            double deltaY = worldMouseY - player.getY();
+        if (input.mousePressed && player.canShoot()) {
+            double deltaX = input.worldMouseX - player.getX();
+            double deltaY = input.worldMouseY - player.getY();
             double angle = Math.atan2(deltaY, deltaX);
             
             Direction shootDirection = Player.calculateDirectionFromAngle(angle);
@@ -97,32 +93,26 @@ public class GameLoop {
         
         // Handle turret shooting
         for (GameObject turret : turrets) {
-            if (turret instanceof Trackable && turret instanceof Shooter && turret instanceof Positionable && turret instanceof Damageable) {
-                Trackable trackableTurret = (Trackable) turret;
-                Shooter shooterTurret = (Shooter) turret;
-                Positionable positionableTurret = (Positionable) turret;
-                Damageable damageableTurret = (Damageable) turret;
+            if (turret instanceof Trackable && turret instanceof Shooter && 
+                turret instanceof Positionable && turret instanceof Damageable) {
                 
-                if (!damageableTurret.isDestroyed() && trackableTurret.canSeePlayer(player.getX(), player.getY()) && 
-                    trackableTurret.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && shooterTurret.canShoot()) {
-                    float[] barrelPos = positionableTurret.getBarrelPosition();
+                Trackable trackable = (Trackable) turret;
+                Shooter shooter = (Shooter) turret;
+                Positionable positionable = (Positionable) turret;
+                Damageable damageable = (Damageable) turret;
+                
+                if (!damageable.isDestroyed() && trackable.canSeePlayer(player.getX(), player.getY()) && 
+                    trackable.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && shooter.canShoot()) {
+                    
+                    float[] barrelPos = positionable.getBarrelPosition();
                     double deltaX = player.getX() - turret.getX();
                     double deltaY = player.getY() - turret.getY();
                     double angleToPlayer = Math.atan2(deltaY, deltaX);
                     bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false));
-                    shooterTurret.shoot(player.getX(), player.getY());
+                    shooter.shoot(player.getX(), player.getY());
                 }
             }
         }
-        
-        // Update bullets and check collisions
-        updateBullets();
-        
-        // Update explosions
-        updateExplosions();
-        
-        // Update shell casings
-        updateShells();
     }
     
     private void updateBullets() {
@@ -130,50 +120,23 @@ public class GameLoop {
         while (bulletIter.hasNext()) {
             Bullet bullet = bulletIter.next();
             bullet.update();
+        }
+        
+        collisionSystem.checkBulletCollisions(bullets, player, turrets, foliages, explosions);
+    }
+    
+    private void updateExplosions() {
+        Iterator<Explosion> explosionIter = explosions.iterator();
+        while (explosionIter.hasNext()) {
+            Explosion explosion = explosionIter.next();
+            explosion.update(GameConfig.DELTA_TIME);
             
-            // Check collision with foliage
-            boolean hitFoliage = false;
-            for (GameObject foliage : foliages) {
-                if (foliage instanceof Collidable && ((Collidable) foliage).checkSpriteCollision(bullet.getX(), bullet.getY(), 1, 1)) {
-                    bulletIter.remove();
-                    hitFoliage = true;
-                    break;
-                }
-            }
-            if (hitFoliage) continue;
-            
-            // Check collision with turrets (only player bullets)
-            if (bullet.isPlayerBullet()) {
-                for (GameObject turret : turrets) {
-                    if (turret instanceof Positionable && ((Positionable) turret).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
-                        if (turret instanceof Damageable) {
-                            Damageable damageableTurret = (Damageable) turret;
-                            boolean wasDestroyed = damageableTurret.isDestroyed();
-                            damageableTurret.takeDamage(10);
-                            
-                            // Create explosion if turret was just destroyed
-                            if (!wasDestroyed && damageableTurret.isDestroyed()) {
-                                explosions.add(new Explosion(turret.getX(), turret.getY()));
-                            }
-                        }
-                        bulletIter.remove();
-                        break;
-                    }
-                }
-                if (!bulletIter.hasNext()) continue;
-            }
-            
-            // Check collision with player (only enemy bullets)
-            if (!bullet.isPlayerBullet() && isPlayerHit(bullet.getX(), bullet.getY())) {
-                player.takeDamage(5);
-                bulletIter.remove();
-                continue;
-            }
-            
-            if (bullet.isExpired()) {
-                bulletIter.remove();
+            if (!explosion.isActive()) {
+                explosionIter.remove();
             }
         }
+        
+        collisionSystem.checkExplosionCollisions(explosions, player);
     }
     
     private void updateShells() {
@@ -187,28 +150,6 @@ public class GameLoop {
         }
     }
     
-    private void updateExplosions() {
-        Iterator<Explosion> explosionIter = explosions.iterator();
-        while (explosionIter.hasNext()) {
-            Explosion explosion = explosionIter.next();
-            explosion.update(0.016f); // Assuming ~60 FPS
-            
-            // Check if player is in explosion area
-            if (explosion.checkSpriteCollision(player.getX() - 6, player.getY() - 32, 12, 64)) {
-                player.takeDamage(1);
-            }
-            
-            if (!explosion.isActive()) {
-                explosionIter.remove();
-            }
-        }
-    }
-    
-    private boolean isPlayerHit(float bulletX, float bulletY) {
-        return bulletX >= player.getX() - 6 && bulletX <= player.getX() + 6 && 
-               bulletY >= player.getY() - 32 && bulletY <= player.getY() + 32;
-    }
-    
     // Getters for rendering
     public Player getPlayer() { return player; }
     public List<Bullet> getBullets() { return bullets; }
@@ -218,8 +159,8 @@ public class GameLoop {
     public List<Explosion> getExplosions() { return explosions; }
     public float getCameraX() { return cameraX; }
     public float getCameraY() { return cameraY; }
-    public float getMapWidth() { return MAP_WIDTH; }
-    public float getMapHeight() { return MAP_HEIGHT; }
-    public float getScreenWidth() { return SCREEN_WIDTH; }
-    public float getScreenHeight() { return SCREEN_HEIGHT; }
+    public float getMapWidth() { return GameConfig.MAP_WIDTH; }
+    public float getMapHeight() { return GameConfig.MAP_HEIGHT; }
+    public float getScreenWidth() { return GameConfig.SCREEN_WIDTH; }
+    public float getScreenHeight() { return GameConfig.SCREEN_HEIGHT; }
 }

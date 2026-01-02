@@ -16,7 +16,7 @@ DodgingBullets is an isometric-style action game where the player navigates a ti
 ### Player Systems
 - **Health System**: 100 HP starting health, loses 5 HP per enemy hit
 - **Health Regeneration**: After 3 seconds without damage, regenerates 15 HP per second
-- **Ammo System**: 5 starting ammo, consumes 1 per shot, regenerates 1 per second
+- **Ammo System**: 10 starting ammo, consumes 1 per shot, regenerates 1 per second
 - **Visual Feedback**: Health bar (green→red) and ammo bar (blue) displayed above player
 - **Damage Flash**: Screen vignette flashes red when taking damage (0.5 second fade)
 
@@ -118,6 +118,8 @@ The game uses two types of hitboxes for different collision purposes:
 - **AI Behavior**: Intelligent scanning, tracking, and engagement
 - **Directional Sprites**: 8-directional turret sprites (N, NE, E, SE, S, SW, W, NW)
 - **Multiple Instances**: 3 turrets at different locations with independent AI
+- **Damage Flash**: Red flash effect for 300ms when taking damage (alternates every 50ms)
+- **Explosion Effect**: Creates explosion animation when destroyed
 
 ### Camera System
 - **Centering**: Camera follows player position
@@ -145,9 +147,10 @@ The game uses two types of hitboxes for different collision purposes:
 - `src/main/java/com/dodgingbullets/core/` - Core game classes (Player, Bullet, GameLoop, GameRenderer)
 - `src/main/java/com/dodgingbullets/gameobjects/` - GameObject system interfaces and base classes
 - `src/main/java/com/dodgingbullets/gameobjects/enemies/` - Enemy implementations (GunTurret)
+- `src/main/java/com/dodgingbullets/gameobjects/effects/` - Visual effects (Explosion)
 - `src/main/java/com/dodgingbullets/desktop/` - Desktop-specific implementation (Game, DesktopRenderer)
 - `src/main/resources/textures/` - Game textures and sprites
-- `assets/` - Original texture assets
+- `assets/` - Original texture assets including explosion animation frames
 - `pom.xml` - Maven build configuration
 
 ## Build & Run
@@ -219,6 +222,9 @@ mvn compile exec:java
 - **Interface Design**: Game.java uses only interfaces, no concrete class dependencies
 - **Polymorphic Rendering**: Depth-sorted rendering for mixed object types
 - **Modular AI**: Each turret operates independently with proper state management
+- **Explosion Effects**: Added animated explosion effects when turrets are destroyed
+- **Damage Feedback**: Implemented red flash effects for turret damage indication
+- **Mouse Scaling**: Fixed shooting direction accuracy with proper coordinate scaling
 
 ### Ready for Next Steps
 - **Level Loading**: Architecture supports loading different enemy types from files
@@ -240,6 +246,28 @@ mvn compile exec:java
 
 ## Architecture Benefits
 The abstracted Renderer interface allows easy swapping between desktop OpenGL and future Android OpenGL implementations without changing core game logic. The modular GameObject system with interface-based design makes it trivial to add new enemy types with different behavior combinations. The separation of GameLoop (logic) and GameRenderer (rendering) from platform-specific code means the same core game can run on desktop and Android with only platform-specific input/rendering implementations. The system is now ready for level loading where different enemy types can be instantiated from file data and managed polymorphically.
+
+## Development Lessons Learned
+
+### Mouse Coordinate Scaling
+When implementing viewport scaling/zooming, mouse coordinates must be properly scaled to match the game world coordinates. Use constants for window size and screen size to ensure shooting direction calculations remain accurate regardless of zoom level:
+```java
+// Scale mouse coordinates from window size to game world size
+double scaledMouseX = mouseX * (SCREEN_WIDTH / WINDOW_WIDTH);
+double scaledMouseY = mouseY * (SCREEN_HEIGHT / WINDOW_HEIGHT);
+```
+
+### Visual Effects Implementation
+- **Explosion System**: Implemented as GameObject with Renderable and Collidable interfaces for consistent architecture
+- **Animation Timing**: 0.2 seconds per frame provides smooth explosion animation
+- **Render Depth**: Explosions render on top of all other objects regardless of Y position for maximum visual impact
+- **Collision Damage**: Continuous damage (1 HP per frame) while player is in explosion area
+
+### Damage Flash Effects
+- **Color Multiplication**: `renderTextureWithColor` uses multiplicative blending, making bright textures difficult to brighten further
+- **Effective Flash**: Red color tint (1.0f, 0.0f, 0.0f, 1.0f) alternating with normal colors provides clear damage feedback
+- **Timing**: 50ms intervals for 300ms total duration creates noticeable but not overwhelming flash effect
+- **Shape Preservation**: Using texture color tinting maintains original sprite shape better than overlay rectangles
 
 ## Next Development Priority
 **Level Loading System**: The GameObject architecture is complete and ready for implementing a level loading system that can read enemy positions and types from configuration files, instantiate the appropriate GameObject implementations, and manage them through the existing GameObjectManager.

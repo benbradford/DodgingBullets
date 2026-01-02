@@ -4,8 +4,7 @@ import com.dodgingbullets.gameobjects.*;
 
 public class Foliage extends GameObject implements Renderable, Collidable {
     private static final float SPRITE_SIZE = 50f;
-    private static final float MOVEMENT_HEIGHT_RATIO = 0.5f;
-    
+
     public Foliage(float x, float y) {
         super(x, y);
     }
