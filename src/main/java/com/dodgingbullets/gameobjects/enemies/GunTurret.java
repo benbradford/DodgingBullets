@@ -1,77 +1,188 @@
 package com.dodgingbullets.gameobjects.enemies;
 
-import com.dodgingbullets.gameobjects.EnemyObject;
-import com.dodgingbullets.gameobjects.Shooter;
+import com.dodgingbullets.gameobjects.*;
+import com.dodgingbullets.core.Direction;
 
-public class GunTurret extends EnemyObject implements Shooter {
-    private float direction;
-    private float lastShotTime;
-    private float shotCooldown = 0.5f;
-    private float sightRange = 400f;
-    private float viewAngle = 45f;
+public class GunTurret extends EnemyObject implements Shooter, Trackable, Positionable {
+    private Direction facingDirection;
+    private long lastShotTime;
+    private static final long SHOT_INTERVAL = 500;
+    private static final float MAX_SIGHT = 320;
     private boolean isIdle = true;
-    private float lastScanTime;
-    private float scanInterval = 2.0f;
+    private long lastDirectionChange = 0;
+    private static final long IDLE_ROTATION_INTERVAL = 2000;
+    private static final int BULLET_DAMAGE = 10;
     
     public GunTurret(float x, float y) {
         super(x, y, 100);
-        this.direction = 0f;
+        this.facingDirection = Direction.UP;
+        this.lastShotTime = System.currentTimeMillis();
+        this.lastDirectionChange = System.currentTimeMillis();
     }
     
     @Override
     public void update(float deltaTime) {
         if (!active) return;
         
-        lastShotTime += deltaTime;
-        lastScanTime += deltaTime;
+        if (isIdle) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastDirectionChange >= IDLE_ROTATION_INTERVAL) {
+                facingDirection = getNextClockwiseDirection(facingDirection);
+                lastDirectionChange = currentTime;
+            }
+        }
+    }
+    
+    @Override
+    public void update(float playerX, float playerY) {
+        boolean playerInRange = canSeePlayer(playerX, playerY);
         
-        // AI logic would go here
-        // For now, just basic idle scanning
-        if (isIdle && lastScanTime >= scanInterval) {
-            direction += 45f;
-            if (direction >= 360f) direction = 0f;
-            lastScanTime = 0f;
+        if (playerInRange && (!isIdle || canSeePlayerInCurrentDirection(playerX, playerY))) {
+            if (isIdle) {
+                isIdle = false;
+            }
+            
+            float deltaX = playerX - x;
+            float deltaY = playerY - y;
+            double angle = Math.atan2(deltaY, deltaX);
+            double degrees = Math.toDegrees(angle);
+            if (degrees < 0) degrees += 360;
+            
+            if (degrees >= 337.5 || degrees < 22.5) {
+                facingDirection = Direction.RIGHT;
+            } else if (degrees >= 22.5 && degrees < 67.5) {
+                facingDirection = Direction.UP_RIGHT;
+            } else if (degrees >= 67.5 && degrees < 112.5) {
+                facingDirection = Direction.UP;
+            } else if (degrees >= 112.5 && degrees < 157.5) {
+                facingDirection = Direction.UP_LEFT;
+            } else if (degrees >= 157.5 && degrees < 202.5) {
+                facingDirection = Direction.LEFT;
+            } else if (degrees >= 202.5 && degrees < 247.5) {
+                facingDirection = Direction.DOWN_LEFT;
+            } else if (degrees >= 247.5 && degrees < 292.5) {
+                facingDirection = Direction.DOWN;
+            } else {
+                facingDirection = Direction.DOWN_RIGHT;
+            }
+        } else {
+            if (!isIdle) {
+                isIdle = true;
+                lastDirectionChange = System.currentTimeMillis();
+            }
+            
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastDirectionChange >= IDLE_ROTATION_INTERVAL) {
+                facingDirection = getNextClockwiseDirection(facingDirection);
+                lastDirectionChange = currentTime;
+            }
         }
     }
     
     @Override
     public void render() {
-        // Rendering logic would go here
-        // This would call the renderer with turret sprite and direction
+        // Rendering handled by renderer
     }
     
     @Override
     public boolean checkSpriteCollision(float x, float y, float width, float height) {
-        // 64x64 sprite hitbox
-        return x < this.x + 64 && x + width > this.x && 
-               y < this.y + 64 && y + height > this.y;
+        return x < this.x + 32 && x + width > this.x - 32 && 
+               y < this.y + 32 && y + height > this.y - 32;
     }
     
     @Override
     public boolean checkMovementCollision(float x, float y, float width, float height) {
-        // 64x32 movement hitbox (lower half)
-        return x < this.x + 64 && x + width > this.x && 
-               y < this.y + 64 && y + height > this.y + 32;
+        return x < this.x + 32 && x + width > this.x - 32 && 
+               y < this.y && y + height > this.y - 32;
+    }
+    
+    @Override
+    public boolean canShoot() {
+        if (isDestroyed()) return false;
+        long currentTime = System.currentTimeMillis();
+        return currentTime - lastShotTime >= SHOT_INTERVAL;
     }
     
     @Override
     public void shoot(float targetX, float targetY) {
         if (!canShoot()) return;
-        
-        // Calculate angle and create bullet
-        float angle = (float) Math.atan2(targetY - y, targetX - x);
-        // Bullet creation logic would go here
-        
-        lastShotTime = 0f;
+        lastShotTime = System.currentTimeMillis();
     }
     
     @Override
-    public boolean canShoot() {
-        return lastShotTime >= shotCooldown;
+    public void takeDamage(int damage) {
+        if (isDestroyed()) return;
+        isIdle = false;
+        super.takeDamage(damage);
     }
     
-    public float getDirection() { return direction; }
-    public void setDirection(float direction) { this.direction = direction; }
-    public boolean isIdle() { return isIdle; }
-    public void setIdle(boolean idle) { this.isIdle = idle; }
+    @Override
+    public boolean canSeePlayer(float playerX, float playerY) {
+        float deltaX = playerX - x;
+        float deltaY = playerY - y;
+        float distance = (float)Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        return distance <= MAX_SIGHT;
+    }
+    
+    @Override
+    public boolean canSeePlayerInCurrentDirection(float playerX, float playerY) {
+        float deltaX = playerX - x;
+        float deltaY = playerY - y;
+        double angle = Math.atan2(deltaY, deltaX);
+        double degrees = Math.toDegrees(angle);
+        if (degrees < 0) degrees += 360;
+        
+        switch (facingDirection) {
+            case RIGHT: return degrees >= 337.5 || degrees < 22.5;
+            case UP_RIGHT: return degrees >= 22.5 && degrees < 67.5;
+            case UP: return degrees >= 67.5 && degrees < 112.5;
+            case UP_LEFT: return degrees >= 112.5 && degrees < 157.5;
+            case LEFT: return degrees >= 157.5 && degrees < 202.5;
+            case DOWN_LEFT: return degrees >= 202.5 && degrees < 247.5;
+            case DOWN: return degrees >= 247.5 && degrees < 292.5;
+            case DOWN_RIGHT: return degrees >= 292.5 && degrees < 337.5;
+            default: return false;
+        }
+    }
+    
+    @Override
+    public Direction getFacingDirection() { 
+        return facingDirection; 
+    }
+    
+    @Override
+    public boolean isInSpriteHitbox(float bulletX, float bulletY) {
+        return bulletX >= x - 32 && bulletX <= x + 32 && 
+               bulletY >= y - 32 && bulletY <= y + 32;
+    }
+    
+    @Override
+    public float[] getBarrelPosition() {
+        float barrelX = x, barrelY = y;
+        switch (facingDirection) {
+            case UP: barrelX += 0; barrelY += 32; break;
+            case DOWN: barrelX += 0; barrelY -= 32; break;
+            case LEFT: barrelX -= 45; barrelY += 7; break;
+            case RIGHT: barrelX += 45; barrelY += 8; break;
+            case UP_LEFT: barrelX -= 30; barrelY += 28; break;
+            case UP_RIGHT: barrelX += 30; barrelY += 28; break;
+            case DOWN_LEFT: barrelX -= 42; barrelY -= 22; break;
+            case DOWN_RIGHT: barrelX += 42; barrelY -= 22; break;
+        }
+        return new float[]{barrelX, barrelY};
+    }
+    
+    private Direction getNextClockwiseDirection(Direction current) {
+        switch (current) {
+            case UP: return Direction.UP_RIGHT;
+            case UP_RIGHT: return Direction.RIGHT;
+            case RIGHT: return Direction.DOWN_RIGHT;
+            case DOWN_RIGHT: return Direction.DOWN;
+            case DOWN: return Direction.DOWN_LEFT;
+            case DOWN_LEFT: return Direction.LEFT;
+            case LEFT: return Direction.UP_LEFT;
+            case UP_LEFT: return Direction.UP;
+            default: return Direction.UP;
+        }
+    }
 }

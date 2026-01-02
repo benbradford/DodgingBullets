@@ -5,7 +5,8 @@ import com.dodgingbullets.core.Renderer;
 import com.dodgingbullets.core.Texture;
 import com.dodgingbullets.core.Bullet;
 import com.dodgingbullets.core.ShellCasing;
-import com.dodgingbullets.core.Turret;
+import com.dodgingbullets.gameobjects.*;
+import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.core.Direction;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -38,7 +39,7 @@ public class Game {
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
-    private Turret turret;
+    private List<GameObject> turrets = new ArrayList<>();
     private float cameraX = 0;
     private float cameraY = 0;
     private boolean showGrid = false;
@@ -148,12 +149,14 @@ public class Game {
         // Load broken turret texture
         brokenTurretTexture = renderer.loadTexture("assets/gunturret_broken.png");
         
-        // Create turret at a fixed position
-        turret = new Turret(800, 150);
+        // Create turrets at different positions
+        turrets.add(new GunTurret(800, 150));
+        turrets.add(new GunTurret(1200, 400));
+        turrets.add(new GunTurret(600, 600));
         
         player = new Player(320, 180); // Center of screen
         player.loadTextures(renderer);
-        player.setTurret(turret);
+        player.setTurret(turrets.get(0)); // Use first turret for collision
     }
     
     private void loop() {
@@ -175,8 +178,12 @@ public class Game {
             cameraX = Math.max(0, Math.min(mapWidth - screenWidth, desiredCameraX));
             cameraY = Math.max(0, Math.min(mapHeight - screenHeight, desiredCameraY));
             
-            // Update turret
-            turret.update(player.getX(), player.getY());
+            // Update turrets
+            for (GameObject turret : turrets) {
+                if (turret instanceof Trackable) {
+                    ((Trackable) turret).update(player.getX(), player.getY());
+                }
+            }
             
             // Handle player shooting with mouse
             if (mousePressed) {
@@ -204,14 +211,23 @@ public class Game {
             }
             
             // Handle turret shooting
-            if (!turret.isDestroyed() && turret.canSeePlayer(player.getX(), player.getY()) && 
-                turret.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && turret.shouldShoot()) {
-                float[] barrelPos = turret.getBarrelPosition();
-                // Calculate angle from turret to player
-                double deltaX = player.getX() - turret.getX();
-                double deltaY = player.getY() - turret.getY();
-                double angleToPlayer = Math.atan2(deltaY, deltaX);
-                bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false)); // Enemy bullet
+            for (GameObject turret : turrets) {
+                if (turret instanceof Trackable && turret instanceof Shooter && turret instanceof Positionable && turret instanceof Damageable) {
+                    Trackable trackableTurret = (Trackable) turret;
+                    Shooter shooterTurret = (Shooter) turret;
+                    Positionable positionableTurret = (Positionable) turret;
+                    Damageable damageableTurret = (Damageable) turret;
+                    
+                    if (!damageableTurret.isDestroyed() && trackableTurret.canSeePlayer(player.getX(), player.getY()) && 
+                        trackableTurret.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && shooterTurret.canShoot()) {
+                        float[] barrelPos = positionableTurret.getBarrelPosition();
+                        double deltaX = player.getX() - turret.getX();
+                        double deltaY = player.getY() - turret.getY();
+                        double angleToPlayer = Math.atan2(deltaY, deltaX);
+                        bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false));
+                        shooterTurret.shoot(player.getX(), player.getY());
+                    }
+                }
             }
             
             // Update bullets and check collisions
@@ -220,11 +236,18 @@ public class Game {
                 Bullet bullet = bulletIter.next();
                 bullet.update();
                 
-                // Check collision with turret (only player bullets can damage turret)
-                if (bullet.isPlayerBullet() && turret.isInSpriteHitbox(bullet.getX(), bullet.getY())) {
-                    turret.takeDamage();
-                    bulletIter.remove(); // Remove bullet on hit
-                    continue;
+                // Check collision with turrets (only player bullets can damage turrets)
+                if (bullet.isPlayerBullet()) {
+                    for (GameObject turret : turrets) {
+                        if (turret instanceof Positionable && ((Positionable) turret).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
+                            if (turret instanceof Damageable) {
+                                ((Damageable) turret).takeDamage(10);
+                            }
+                            bulletIter.remove();
+                            break;
+                        }
+                    }
+                    if (!bulletIter.hasNext()) continue;
                 }
                 
                 // Check collision with player (only enemy bullets can damage player)
@@ -259,23 +282,34 @@ public class Game {
             renderer.render(shadowTexture, 
                 player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
             
-            // Depth-sorted rendering: render objects from top to bottom (higher Y to lower Y)
-            if (player.getY() < turret.getY()) {
-                // Player is below turret, render turret first (behind)
-                Texture turretTexture = turret.isDestroyed() ? brokenTurretTexture : turretTextures.get(turret.getFacingDirection());
-                renderer.render(turretTexture, turret.getX() - 64 - cameraX, turret.getY() - 64 - cameraY, 128, 128);
-                
-                Texture currentTexture = player.getCurrentTexture();
-                renderer.render(currentTexture, 
-                    player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
-            } else {
-                // Turret is below player, render player first (behind)
-                Texture currentTexture = player.getCurrentTexture();
-                renderer.render(currentTexture, 
-                    player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
-                
-                Texture turretTexture = turret.isDestroyed() ? brokenTurretTexture : turretTextures.get(turret.getFacingDirection());
-                renderer.render(turretTexture, turret.getX() - 64 - cameraX, turret.getY() - 64 - cameraY, 128, 128);
+            // Render turrets with depth sorting
+            List<Object> allObjects = new ArrayList<>();
+            allObjects.add(player);
+            allObjects.addAll(turrets);
+            
+            // Sort by Y position for depth
+            allObjects.sort((a, b) -> {
+                float aY = (a instanceof Player) ? ((Player) a).getY() : ((GameObject) a).getY();
+                float bY = (b instanceof Player) ? ((Player) b).getY() : ((GameObject) b).getY();
+                return Float.compare(aY, bY);
+            });
+            
+            for (Object obj : allObjects) {
+                if (obj instanceof Player) {
+                    Player p = (Player) obj;
+                    Texture currentTexture = p.getCurrentTexture();
+                    renderer.render(currentTexture, 
+                        p.getX() - 32 - cameraX, p.getY() - 32 + p.getJumpOffset() - cameraY, 64, 64);
+                } else if (obj instanceof GameObject) {
+                    GameObject gameObj = (GameObject) obj;
+                    if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
+                        Trackable trackable = (Trackable) gameObj;
+                        Damageable damageable = (Damageable) gameObj;
+                        Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
+                                               turretTextures.get(trackable.getFacingDirection());
+                        renderer.render(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128);
+                    }
+                }
             }
             
             // Render bullets (smaller size, with camera offset)
@@ -462,42 +496,6 @@ public class Game {
                     GRID_SIZE, GRID_SIZE, 0, 0.4f);
             }
         }
-        
-        // Highlight turret's sprite hitbox cells (yellow)
-        int[] turretCells = getTurretGridCells();
-        int leftTurret = turretCells[0];
-        int rightTurret = turretCells[1];
-        int bottomTurret = turretCells[2];
-        int topTurret = turretCells[3];
-        
-        for (int x = leftTurret; x <= rightTurret; x++) {
-            for (int y = bottomTurret; y <= topTurret; y++) {
-                float cellWorldX = gridToWorld(x);
-                float cellWorldY = gridToWorld(y);
-                // Render semi-transparent yellow highlight for turret sprite hitbox
-                renderer.renderRotatedWithAlpha(shellTexture, 
-                    cellWorldX - cameraX, cellWorldY - cameraY, 
-                    GRID_SIZE, GRID_SIZE, 0, 0.2f);
-            }
-        }
-        
-        // Highlight turret's movement hitbox cells (blue) - rendered on top
-        int[] turretMovementCells = getTurretMovementCells();
-        int leftTurretMovement = turretMovementCells[0];
-        int rightTurretMovement = turretMovementCells[1];
-        int bottomTurretMovement = turretMovementCells[2];
-        int topTurretMovement = turretMovementCells[3];
-        
-        for (int x = leftTurretMovement; x <= rightTurretMovement; x++) {
-            for (int y = bottomTurretMovement; y <= topTurretMovement; y++) {
-                float cellWorldX = gridToWorld(x);
-                float cellWorldY = gridToWorld(y);
-                // Render semi-transparent blue highlight for turret movement hitbox
-                renderer.renderRotatedWithAlpha(bulletTexture, 
-                    cellWorldX - cameraX, cellWorldY - cameraY, 
-                    GRID_SIZE, GRID_SIZE, 0, 0.3f);
-            }
-        }
     }
     
     // Grid utility methods
@@ -545,7 +543,7 @@ public class Game {
     }
     
     // Get turret's sprite hitbox cells (actual sprite boundaries - about 4x4 cells)
-    public int[] getTurretGridCells() {
+    public int[] getTurretGridCells(GameObject turret) {
         int leftGrid = worldToGrid(turret.getX() - 32);   // 64 pixel width (4 cells)
         int rightGrid = worldToGrid(turret.getX() + 32);  // 64 pixel width (4 cells)
         int topGrid = worldToGrid(turret.getY() + 32);    // 64 pixel height (4 cells)
@@ -555,7 +553,7 @@ public class Game {
     }
     
     // Get turret's movement hitbox cells (lower half of actual sprite)
-    public int[] getTurretMovementCells() {
+    public int[] getTurretMovementCells(GameObject turret) {
         int leftGrid = worldToGrid(turret.getX() - 32);   // Same width as sprite
         int rightGrid = worldToGrid(turret.getX() + 32);  // Same width as sprite
         int topGrid = worldToGrid(turret.getY());         // Center line

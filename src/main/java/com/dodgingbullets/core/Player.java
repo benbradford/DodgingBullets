@@ -1,5 +1,7 @@
 package com.dodgingbullets.core;
 
+import com.dodgingbullets.gameobjects.GameObject;
+import com.dodgingbullets.gameobjects.Collidable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +35,7 @@ public class Player {
     private Direction shootingDirection = null;
     private long lastShotTime = 0;
     private static final long SHOOTING_OVERRIDE_DURATION = 300; // 0.3 seconds
-    private Turret turret; // Reference to check collision
+    private GameObject turret; // Reference to check collision
     private boolean isMoving = false;
     private int animationFrame = 0;
     private boolean animationForward = true;
@@ -47,28 +49,22 @@ public class Player {
         this.y = y;
     }
     
-    public void setTurret(Turret turret) {
+    public void setTurret(GameObject turret) {
         this.turret = turret;
     }
     
     private boolean wouldCollideWithTurret(float newX, float newY) {
-        if (turret == null) return false;
+        if (turret == null || !(turret instanceof Collidable)) return false;
         
-        // Player movement hitbox at new position
-        int playerLeft = (int)((newX - 6) / 16);   // 12 pixel width
-        int playerRight = (int)((newX + 6) / 16);
-        int playerBottom = (int)((newY - 32) / 16); // Bottom 1/5th
-        int playerTop = (int)((newY - 32 + 12.8f) / 16);
+        Collidable collidableTurret = (Collidable) turret;
         
-        // Turret movement hitbox (lower half)
-        int turretLeft = (int)((turret.getX() - 32) / 16);
-        int turretRight = (int)((turret.getX() + 32) / 16);
-        int turretBottom = (int)((turret.getY() - 32) / 16);
-        int turretTop = (int)(turret.getY() / 16);
+        // Player movement hitbox (12 pixels wide, bottom 1/5th of sprite height)
+        float playerWidth = 12;
+        float playerHeight = 12.8f; // Bottom 1/5th of 64-pixel sprite
+        float playerLeft = newX - 6;
+        float playerBottom = newY - 32;
         
-        // Check overlap
-        return !(playerRight < turretLeft || playerLeft > turretRight || 
-                 playerTop < turretBottom || playerBottom > turretTop);
+        return collidableTurret.checkMovementCollision(playerLeft, playerBottom, playerWidth, playerHeight);
     }
     
     public void loadTextures(Renderer renderer) {
