@@ -4,6 +4,7 @@ import com.dodgingbullets.gameobjects.GameObject;
 import com.dodgingbullets.gameobjects.Collidable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 public class Player {
     private float x, y;
@@ -36,6 +37,7 @@ public class Player {
     private long lastShotTime = 0;
     private static final long SHOOTING_OVERRIDE_DURATION = 300; // 0.3 seconds
     private GameObject turret; // Reference to check collision
+    private List<GameObject> collidableObjects; // All collidable objects
     private boolean isMoving = false;
     private int animationFrame = 0;
     private boolean animationForward = true;
@@ -53,10 +55,12 @@ public class Player {
         this.turret = turret;
     }
     
-    private boolean wouldCollideWithTurret(float newX, float newY) {
-        if (turret == null || !(turret instanceof Collidable)) return false;
-        
-        Collidable collidableTurret = (Collidable) turret;
+    public void setCollidableObjects(List<GameObject> objects) {
+        this.collidableObjects = objects;
+    }
+    
+    private boolean wouldCollideWithObjects(float newX, float newY) {
+        if (collidableObjects == null) return false;
         
         // Player movement hitbox (12 pixels wide, bottom 1/5th of sprite height)
         float playerWidth = 12;
@@ -64,7 +68,12 @@ public class Player {
         float playerLeft = newX - 6;
         float playerBottom = newY - 32;
         
-        return collidableTurret.checkMovementCollision(playerLeft, playerBottom, playerWidth, playerHeight);
+        for (GameObject obj : collidableObjects) {
+            if (obj instanceof Collidable && ((Collidable) obj).checkMovementCollision(playerLeft, playerBottom, playerWidth, playerHeight)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     public void loadTextures(Renderer renderer) {
@@ -180,18 +189,18 @@ public class Player {
             y = prevY; // Revert Y movement only
         }
         
-        // Check collision with turret movement hitbox - X axis
-        if (wouldCollideWithTurret(x, prevY)) {
+        // Check collision with objects movement hitbox - X axis
+        if (wouldCollideWithObjects(x, prevY)) {
             x = prevX; // Revert X movement only
         }
         
-        // Check collision with turret movement hitbox - Y axis
-        if (wouldCollideWithTurret(prevX, y)) {
+        // Check collision with objects movement hitbox - Y axis
+        if (wouldCollideWithObjects(prevX, y)) {
             y = prevY; // Revert Y movement only
         }
         
         // Final check - if both movements together cause collision, revert both
-        if (wouldCollideWithTurret(x, y)) {
+        if (wouldCollideWithObjects(x, y)) {
             x = prevX;
             y = prevY;
         }

@@ -7,6 +7,7 @@ import com.dodgingbullets.core.Bullet;
 import com.dodgingbullets.core.ShellCasing;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
+import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.core.Direction;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -36,14 +37,14 @@ public class Game {
     private Texture shellTexture;
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
+    private Texture foliageTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
     private List<GameObject> turrets = new ArrayList<>();
+    private List<GameObject> foliages = new ArrayList<>();
     private float cameraX = 0;
     private float cameraY = 0;
-    private boolean showGrid = false;
-    private static final int GRID_SIZE = 16; // Quarter player width (64/4 = 16)
     private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -93,9 +94,6 @@ public class Game {
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
                     if (action == GLFW_RELEASE) jumpHeld = false;
                     break;
-                case GLFW_KEY_G:
-                    if (action == GLFW_PRESS) showGrid = !showGrid;
-                    break;
             }
         });
         
@@ -135,6 +133,7 @@ public class Game {
         bulletTexture = renderer.loadTexture("assets/bullet.png");
         shellTexture = renderer.loadTexture("assets/shell.png");
         vignetteTexture = renderer.loadTexture("assets/vin.png");
+        foliageTexture = renderer.loadTexture("assets/foliage01.png");
         
         // Load turret textures
         turretTextures.put(Direction.RIGHT, renderer.loadTexture("assets/gunturret_e.png"));
@@ -154,9 +153,22 @@ public class Game {
         turrets.add(new GunTurret(1200, 400));
         turrets.add(new GunTurret(600, 600));
         
+        // Create foliage at different positions (avoiding turrets and player spawn)
+        foliages.add(new Foliage(400, 300));
+        foliages.add(new Foliage(1000, 200));
+        foliages.add(new Foliage(1400, 600));
+        foliages.add(new Foliage(200, 500));
+        foliages.add(new Foliage(1600, 300));
+        
         player = new Player(320, 180); // Center of screen
         player.loadTextures(renderer);
         player.setTurret(turrets.get(0)); // Use first turret for collision
+        
+        // Set all collidable objects for player collision
+        List<GameObject> allCollidables = new ArrayList<>();
+        allCollidables.addAll(turrets);
+        allCollidables.addAll(foliages);
+        player.setCollidableObjects(allCollidables);
     }
     
     private void loop() {
@@ -236,6 +248,17 @@ public class Game {
                 Bullet bullet = bulletIter.next();
                 bullet.update();
                 
+                // Check collision with foliage (all bullets are absorbed)
+                boolean hitFoliage = false;
+                for (GameObject foliage : foliages) {
+                    if (foliage instanceof Collidable && ((Collidable) foliage).checkSpriteCollision(bullet.getX(), bullet.getY(), 1, 1)) {
+                        bulletIter.remove();
+                        hitFoliage = true;
+                        break;
+                    }
+                }
+                if (hitFoliage) continue;
+                
                 // Check collision with turrets (only player bullets can damage turrets)
                 if (bullet.isPlayerBullet()) {
                     for (GameObject turret : turrets) {
@@ -286,12 +309,15 @@ public class Game {
             List<Object> allObjects = new ArrayList<>();
             allObjects.add(player);
             allObjects.addAll(turrets);
+            allObjects.addAll(foliages);
             
-            // Sort by Y position for depth
+            // Sort by Y position for depth (higher Y renders first/behind)
             allObjects.sort((a, b) -> {
-                float aY = (a instanceof Player) ? ((Player) a).getY() : ((GameObject) a).getY();
-                float bY = (b instanceof Player) ? ((Player) b).getY() : ((GameObject) b).getY();
-                return Float.compare(aY, bY);
+                float aY = (a instanceof Player) ? ((Player) a).getY() : 
+                          (a instanceof Renderable) ? ((Renderable) a).getRenderY() : ((GameObject) a).getY();
+                float bY = (b instanceof Player) ? ((Player) b).getY() : 
+                          (b instanceof Renderable) ? ((Renderable) b).getRenderY() : ((GameObject) b).getY();
+                return Float.compare(bY, aY); // Reversed for proper depth
             });
             
             for (Object obj : allObjects) {
@@ -308,6 +334,9 @@ public class Game {
                         Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
                                                turretTextures.get(trackable.getFacingDirection());
                         renderer.render(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128);
+                    } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
+                        // Render foliage
+                        renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
                     }
                 }
             }
@@ -329,7 +358,7 @@ public class Game {
             renderAmmoBar();
             
             // Render grid overlay last (always on top)
-            renderGrid();
+            // Grid system removed
             
             // Render vignette overlay (full screen with reduced opacity)
             // Render vignette overlay (full screen with damage flash effect)
@@ -431,135 +460,6 @@ public class Game {
         if (cameraX + 640 >= mapWidth - 10) {
             renderer.render(bulletTexture, mapWidth - 4 - cameraX, 0 - cameraY, 4, mapHeight);
         }
-    }
-    
-    private void renderGrid() {
-        if (!showGrid) return;
-        
-        float mapWidth = 2560;
-        float mapHeight = 1440;
-        
-        // Calculate visible grid range with proper bounds
-        int startGridX = (int)Math.floor(cameraX / GRID_SIZE);
-        int startGridY = (int)Math.floor(cameraY / GRID_SIZE);
-        int endGridX = (int)Math.ceil((cameraX + 640) / GRID_SIZE);
-        int endGridY = (int)Math.ceil((cameraY + 360) / GRID_SIZE);
-        
-        // Render vertical grid lines (thicker)
-        for (int x = startGridX; x <= endGridX; x++) {
-            float worldX = x * GRID_SIZE;
-            if (worldX >= 0 && worldX <= mapWidth) {
-                renderer.render(bulletTexture, worldX - cameraX, 0 - cameraY, 2, mapHeight);
-            }
-        }
-        
-        // Render horizontal grid lines (thicker)
-        for (int y = startGridY; y <= endGridY; y++) {
-            float worldY = y * GRID_SIZE;
-            if (worldY >= 0 && worldY <= mapHeight) {
-                renderer.render(bulletTexture, 0 - cameraX, worldY - cameraY, mapWidth, 2);
-            }
-        }
-        
-        // Highlight player's sprite hitbox cells (yellow)
-        int[] playerCells = getPlayerGridCells();
-        int leftGrid = playerCells[0];
-        int rightGrid = playerCells[1];
-        int bottomGrid = playerCells[2];
-        int topGrid = playerCells[3];
-        
-        for (int x = leftGrid; x <= rightGrid; x++) {
-            for (int y = bottomGrid; y <= topGrid; y++) {
-                float cellWorldX = gridToWorld(x);
-                float cellWorldY = gridToWorld(y);
-                // Render semi-transparent yellow highlight for sprite hitbox
-                renderer.renderRotatedWithAlpha(shellTexture, 
-                    cellWorldX - cameraX, cellWorldY - cameraY, 
-                    GRID_SIZE, GRID_SIZE, 0, 0.3f);
-            }
-        }
-        
-        // Highlight player's movement hitbox cells (blue) - rendered on top
-        int[] movementCells = getPlayerMovementCells();
-        int leftMovement = movementCells[0];
-        int rightMovement = movementCells[1];
-        int bottomMovement = movementCells[2];
-        int topMovement = movementCells[3];
-        
-        for (int x = leftMovement; x <= rightMovement; x++) {
-            for (int y = bottomMovement; y <= topMovement; y++) {
-                float cellWorldX = gridToWorld(x);
-                float cellWorldY = gridToWorld(y);
-                // Render semi-transparent blue highlight for movement hitbox (using bullet texture as blue)
-                renderer.renderRotatedWithAlpha(bulletTexture, 
-                    cellWorldX - cameraX, cellWorldY - cameraY, 
-                    GRID_SIZE, GRID_SIZE, 0, 0.4f);
-            }
-        }
-    }
-    
-    // Grid utility methods
-    public static int worldToGrid(float worldPos) {
-        return (int)(worldPos / GRID_SIZE);
-    }
-    
-    public static float gridToWorld(int gridPos) {
-        return gridPos * GRID_SIZE;
-    }
-    
-    public static float snapToGrid(float worldPos) {
-        return gridToWorld(worldToGrid(worldPos));
-    }
-    
-    // Get grid cells occupied by an object (sprite hitbox)
-    public static int[] getOccupiedCells(float x, float y, float width, float height) {
-        int leftGrid = worldToGrid(x - 6);   // 12 pixels wide total (6 each side)
-        int rightGrid = worldToGrid(x + 6);  // 12 pixels wide total (6 each side)
-        int topGrid = worldToGrid(y + height/2 - 1);
-        int bottomGrid = worldToGrid(y - height/2);
-        
-        return new int[]{leftGrid, rightGrid, bottomGrid, topGrid};
-    }
-    
-    // Get movement hitbox cells (feet area - bottom 1/5th of sprite)
-    public static int[] getMovementHitboxCells(float x, float y, float width, float height) {
-        float feetHeight = height / 5; // Bottom 1/5th
-        int leftGrid = worldToGrid(x - 6);   // Same 12 pixel width
-        int rightGrid = worldToGrid(x + 6);  // Same 12 pixel width
-        int topGrid = worldToGrid(y - height/2 + feetHeight - 1);
-        int bottomGrid = worldToGrid(y - height/2);
-        
-        return new int[]{leftGrid, rightGrid, bottomGrid, topGrid};
-    }
-    
-    // Get player's current grid cells (sprite hitbox)
-    public int[] getPlayerGridCells() {
-        return getOccupiedCells(player.getX(), player.getY(), 64, 64);
-    }
-    
-    // Get player's movement hitbox cells
-    public int[] getPlayerMovementCells() {
-        return getMovementHitboxCells(player.getX(), player.getY(), 64, 64);
-    }
-    
-    // Get turret's sprite hitbox cells (actual sprite boundaries - about 4x4 cells)
-    public int[] getTurretGridCells(GameObject turret) {
-        int leftGrid = worldToGrid(turret.getX() - 32);   // 64 pixel width (4 cells)
-        int rightGrid = worldToGrid(turret.getX() + 32);  // 64 pixel width (4 cells)
-        int topGrid = worldToGrid(turret.getY() + 32);    // 64 pixel height (4 cells)
-        int bottomGrid = worldToGrid(turret.getY() - 32); // 64 pixel height (4 cells)
-        
-        return new int[]{leftGrid, rightGrid, bottomGrid, topGrid};
-    }
-    
-    // Get turret's movement hitbox cells (lower half of actual sprite)
-    public int[] getTurretMovementCells(GameObject turret) {
-        int leftGrid = worldToGrid(turret.getX() - 32);   // Same width as sprite
-        int rightGrid = worldToGrid(turret.getX() + 32);  // Same width as sprite
-        int topGrid = worldToGrid(turret.getY());         // Center line
-        int bottomGrid = worldToGrid(turret.getY() - 32); // Bottom of sprite
-        
-        return new int[]{leftGrid, rightGrid, bottomGrid, topGrid};
     }
     
     private void cleanup() {
