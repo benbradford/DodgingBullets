@@ -180,9 +180,15 @@ mvn compile exec:java
 
 ## Running the Game
 ```bash
-cd DodgingBullets
-./play.sh
+/bin/zsh /Users/bebradfo/code/DodgingBullets/DodgingBullets/play.sh
 ```
+
+**Note**: Currently using placeholder colored block textures. The game shows:
+- Blue blocks: Player character
+- Red blocks: Turrets  
+- Green blocks: Foliage
+- Yellow blocks: Bullets
+- Other colored blocks: Various game elements
 
 ## Technical Details
 - **Resolution**: 360x640 (Android phone aspect ratio 9:16)

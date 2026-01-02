@@ -1,36 +1,24 @@
 package com.dodgingbullets.desktop;
 
-import com.dodgingbullets.core.Player;
-import com.dodgingbullets.core.Renderer;
-import com.dodgingbullets.core.Texture;
-import com.dodgingbullets.core.Bullet;
-import com.dodgingbullets.core.ShellCasing;
+import com.dodgingbullets.core.*;
 import com.dodgingbullets.gameobjects.*;
-import com.dodgingbullets.gameobjects.enemies.GunTurret;
-import com.dodgingbullets.gameobjects.environment.Foliage;
-import com.dodgingbullets.core.Direction;
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.Configuration;
-import org.lwjgl.system.MemoryStack;
 
-import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Game {
     private long window;
     private Renderer renderer;
-    private Player player;
+    private GameLoop gameLoop;
     private Texture grassTexture;
     private Texture shadowTexture;
     private Texture bulletTexture;
@@ -39,12 +27,6 @@ public class Game {
     private Texture vignetteTexture;
     private Texture foliageTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
-    private List<Bullet> bullets = new ArrayList<>();
-    private List<ShellCasing> shells = new ArrayList<>();
-    private List<GameObject> turrets = new ArrayList<>();
-    private List<GameObject> foliages = new ArrayList<>();
-    private float cameraX = 0;
-    private float cameraY = 0;
     private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -72,53 +54,24 @@ public class Game {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         
-        // Android phone aspect ratio (16:9) landscape
+        // Android phone aspect ratio (16:9) landscape - 10% zoom out
         window = glfwCreateWindow(640, 360, "Dodging Bullets", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
         
-        glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                glfwSetWindowShouldClose(window, true);
-            }
-            
-            boolean pressed = action == GLFW_PRESS || action == GLFW_REPEAT;
-            switch (key) {
-                case GLFW_KEY_W: keys[0] = pressed; break; // W = forward/up
-                case GLFW_KEY_S: keys[1] = pressed; break; // S = backward/down
-                case GLFW_KEY_A: keys[2] = pressed; break; // A = left
-                case GLFW_KEY_D: keys[3] = pressed; break; // D = right
-                case GLFW_KEY_J: 
-                    jumpPressed = (action == GLFW_PRESS);
-                    jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
-                    if (action == GLFW_RELEASE) jumpHeld = false;
-                    break;
-            }
-        });
+        setupInputCallbacks();
         
-        glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-            if (button == GLFW_MOUSE_BUTTON_LEFT) {
-                mousePressed = (action == GLFW_PRESS);
-            }
-        });
-        
-        glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
-            mouseX = xpos;
-            mouseY = 360 - ypos; // Flip Y coordinate to match OpenGL
-        });
-        
-        try (MemoryStack stack = stackPush()) {
-            IntBuffer pWidth = stack.mallocInt(1);
-            IntBuffer pHeight = stack.mallocInt(1);
+        try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
+            var pWidth = stack.mallocInt(1);
+            var pHeight = stack.mallocInt(1);
             
             glfwGetWindowSize(window, pWidth, pHeight);
-            GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+            var vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
             
-            glfwSetWindowPos(window,
+            glfwSetWindowPos(window, 
                 (vidmode.width() - pWidth.get(0)) / 2,
-                (vidmode.height() - pHeight.get(0)) / 2
-            );
+                (vidmode.height() - pHeight.get(0)) / 2);
         }
         
         glfwMakeContextCurrent(window);
@@ -128,272 +81,184 @@ public class Game {
         renderer = new DesktopRenderer();
         renderer.initialize();
         
-        grassTexture = renderer.loadTexture("assets/grass_realistic_seamless.png");
-        shadowTexture = renderer.loadTexture("assets/shadow.png");
-        bulletTexture = renderer.loadTexture("assets/bullet.png");
-        shellTexture = renderer.loadTexture("assets/shell.png");
-        vignetteTexture = renderer.loadTexture("assets/vin.png");
-        foliageTexture = renderer.loadTexture("assets/foliage01.png");
+        loadTextures();
         
-        // Load turret textures
-        turretTextures.put(Direction.RIGHT, renderer.loadTexture("assets/gunturret_e.png"));
-        turretTextures.put(Direction.UP_RIGHT, renderer.loadTexture("assets/gunturret_ne.png"));
-        turretTextures.put(Direction.UP, renderer.loadTexture("assets/gunturret_n.png"));
-        turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("assets/gunturret_nw.png"));
-        turretTextures.put(Direction.LEFT, renderer.loadTexture("assets/gunturret_w.png"));
-        turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("assets/gunturret_sw.png"));
-        turretTextures.put(Direction.DOWN, renderer.loadTexture("assets/gunturret_s.png"));
-        turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("assets/gunturret_se.png"));
+        gameLoop = new GameLoop();
+        gameLoop.initialize(renderer);
+    }
+    
+    private void setupInputCallbacks() {
+        glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+                glfwSetWindowShouldClose(window, true);
+            }
+            
+            boolean pressed = action == GLFW_PRESS || action == GLFW_REPEAT;
+            switch (key) {
+                case GLFW_KEY_W: keys[0] = pressed; break;
+                case GLFW_KEY_S: keys[1] = pressed; break;
+                case GLFW_KEY_A: keys[2] = pressed; break;
+                case GLFW_KEY_D: keys[3] = pressed; break;
+                case GLFW_KEY_J: 
+                    jumpPressed = (action == GLFW_PRESS);
+                    jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
+                    if (action == GLFW_RELEASE) jumpHeld = false;
+                    break;
+            }
+        });
         
-        // Load broken turret texture
-        brokenTurretTexture = renderer.loadTexture("assets/gunturret_broken.png");
+        glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
+            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+                mousePressed = true;
+            }
+        });
         
-        // Create turrets at different positions
-        turrets.add(new GunTurret(800, 150));
-        turrets.add(new GunTurret(1200, 400));
-        turrets.add(new GunTurret(600, 600));
+        glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
+            mouseX = xpos;
+            mouseY = 360 - ypos; // Flip Y coordinate
+        });
+    }
+    
+    private void loadTextures() {
+        grassTexture = renderer.loadTexture("src/main/resources/textures/grass.png");
+        shadowTexture = renderer.loadTexture("src/main/resources/textures/shadow.png");
+        bulletTexture = renderer.loadTexture("src/main/resources/textures/bullet.png");
+        shellTexture = renderer.loadTexture("src/main/resources/textures/shell.png");
+        brokenTurretTexture = renderer.loadTexture("src/main/resources/textures/broken_turret.png");
+        vignetteTexture = renderer.loadTexture("src/main/resources/textures/vignette.png");
+        foliageTexture = renderer.loadTexture("src/main/resources/textures/foliage.png");
         
-        // Create foliage at different positions (avoiding turrets and player spawn)
-        foliages.add(new Foliage(400, 300));
-        foliages.add(new Foliage(1000, 200));
-        foliages.add(new Foliage(1400, 600));
-        foliages.add(new Foliage(200, 500));
-        foliages.add(new Foliage(1600, 300));
-        
-        player = new Player(320, 180); // Center of screen
-        player.loadTextures(renderer);
-        player.setTurret(turrets.get(0)); // Use first turret for collision
-        
-        // Set all collidable objects for player collision
-        List<GameObject> allCollidables = new ArrayList<>();
-        allCollidables.addAll(turrets);
-        allCollidables.addAll(foliages);
-        player.setCollidableObjects(allCollidables);
+        // Load turret textures for all 8 directions
+        turretTextures.put(Direction.UP, renderer.loadTexture("src/main/resources/textures/turret_n.png"));
+        turretTextures.put(Direction.UP_RIGHT, renderer.loadTexture("src/main/resources/textures/turret_ne.png"));
+        turretTextures.put(Direction.RIGHT, renderer.loadTexture("src/main/resources/textures/turret_e.png"));
+        turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("src/main/resources/textures/turret_se.png"));
+        turretTextures.put(Direction.DOWN, renderer.loadTexture("src/main/resources/textures/turret_s.png"));
+        turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("src/main/resources/textures/turret_sw.png"));
+        turretTextures.put(Direction.LEFT, renderer.loadTexture("src/main/resources/textures/turret_w.png"));
+        turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("src/main/resources/textures/turret_nw.png"));
     }
     
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
-            player.update(keys, jumpPressed, jumpHeld);
+            // Update game logic
+            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseX, mouseY);
             jumpPressed = false; // Reset jump press after processing
+            mousePressed = false; // Reset mouse press after processing
             
-            // Update camera to follow player with map edge clamping
-            float mapWidth = 2560;
-            float mapHeight = 1440;
-            float screenWidth = 640;
-            float screenHeight = 360;
-            
-            // Calculate desired camera position (player centered)
-            float desiredCameraX = player.getX() - screenWidth / 2;
-            float desiredCameraY = player.getY() - screenHeight / 2;
-            
-            // Clamp camera to map boundaries
-            cameraX = Math.max(0, Math.min(mapWidth - screenWidth, desiredCameraX));
-            cameraY = Math.max(0, Math.min(mapHeight - screenHeight, desiredCameraY));
-            
-            // Update turrets
-            for (GameObject turret : turrets) {
-                if (turret instanceof Trackable) {
-                    ((Trackable) turret).update(player.getX(), player.getY());
-                }
-            }
-            
-            // Handle player shooting with mouse
-            if (mousePressed) {
-                // Calculate world position of mouse
-                double worldMouseX = mouseX + cameraX;
-                double worldMouseY = mouseY + cameraY;
-                
-                // Calculate direction from player to mouse
-                double deltaX = worldMouseX - player.getX();
-                double deltaY = worldMouseY - player.getY();
-                double angle = Math.atan2(deltaY, deltaX);
-                
-                Direction shootDirection = Player.calculateDirectionFromAngle(angle);
-                player.setShootingDirection(shootDirection);
-                
-                // Only shoot if player has ammo
-                if (player.canShoot()) {
-                    player.shoot();
-                    float[] gunPos = player.getGunBarrelPosition();
-                    bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true)); // Player bullet
-                    // Add shell casing effect
-                    shells.add(new ShellCasing(player.getX(), player.getY()));
-                }
-                mousePressed = false;
-            }
-            
-            // Handle turret shooting
-            for (GameObject turret : turrets) {
-                if (turret instanceof Trackable && turret instanceof Shooter && turret instanceof Positionable && turret instanceof Damageable) {
-                    Trackable trackableTurret = (Trackable) turret;
-                    Shooter shooterTurret = (Shooter) turret;
-                    Positionable positionableTurret = (Positionable) turret;
-                    Damageable damageableTurret = (Damageable) turret;
-                    
-                    if (!damageableTurret.isDestroyed() && trackableTurret.canSeePlayer(player.getX(), player.getY()) && 
-                        trackableTurret.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && shooterTurret.canShoot()) {
-                        float[] barrelPos = positionableTurret.getBarrelPosition();
-                        double deltaX = player.getX() - turret.getX();
-                        double deltaY = player.getY() - turret.getY();
-                        double angleToPlayer = Math.atan2(deltaY, deltaX);
-                        bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false));
-                        shooterTurret.shoot(player.getX(), player.getY());
-                    }
-                }
-            }
-            
-            // Update bullets and check collisions
-            Iterator<Bullet> bulletIter = bullets.iterator();
-            while (bulletIter.hasNext()) {
-                Bullet bullet = bulletIter.next();
-                bullet.update();
-                
-                // Check collision with foliage (all bullets are absorbed)
-                boolean hitFoliage = false;
-                for (GameObject foliage : foliages) {
-                    if (foliage instanceof Collidable && ((Collidable) foliage).checkSpriteCollision(bullet.getX(), bullet.getY(), 1, 1)) {
-                        bulletIter.remove();
-                        hitFoliage = true;
-                        break;
-                    }
-                }
-                if (hitFoliage) continue;
-                
-                // Check collision with turrets (only player bullets can damage turrets)
-                if (bullet.isPlayerBullet()) {
-                    for (GameObject turret : turrets) {
-                        if (turret instanceof Positionable && ((Positionable) turret).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
-                            if (turret instanceof Damageable) {
-                                ((Damageable) turret).takeDamage(10);
-                            }
-                            bulletIter.remove();
-                            break;
-                        }
-                    }
-                    if (!bulletIter.hasNext()) continue;
-                }
-                
-                // Check collision with player (only enemy bullets can damage player)
-                if (!bullet.isPlayerBullet() && isPlayerHit(bullet.getX(), bullet.getY())) {
-                    player.takeDamage(5);
-                    bulletIter.remove(); // Remove bullet on hit
-                    continue;
-                }
-                
-                if (bullet.isExpired()) {
-                    bulletIter.remove();
-                }
-            }
-            
-            // Update shell casings
-            Iterator<ShellCasing> shellIter = shells.iterator();
-            while (shellIter.hasNext()) {
-                ShellCasing shell = shellIter.next();
-                shell.update();
-                if (shell.isExpired()) {
-                    shellIter.remove();
-                }
-            }
-            
-            renderer.clear();
-            
-            // Render tiled grass background (with camera offset)
-            renderTiledBackground();
-            
-            // Render smaller shadow (positioned below player, with camera offset)
-            float shadowSize = 40 - (player.getJumpOffset() * 0.3f);
-            renderer.render(shadowTexture, 
-                player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
-            
-            // Render turrets with depth sorting
-            List<Object> allObjects = new ArrayList<>();
-            allObjects.add(player);
-            allObjects.addAll(turrets);
-            allObjects.addAll(foliages);
-            
-            // Sort by Y position for depth (higher Y renders first/behind)
-            allObjects.sort((a, b) -> {
-                float aY = (a instanceof Player) ? ((Player) a).getY() : 
-                          (a instanceof Renderable) ? ((Renderable) a).getRenderY() : ((GameObject) a).getY();
-                float bY = (b instanceof Player) ? ((Player) b).getY() : 
-                          (b instanceof Renderable) ? ((Renderable) b).getRenderY() : ((GameObject) b).getY();
-                return Float.compare(bY, aY); // Reversed for proper depth
-            });
-            
-            for (Object obj : allObjects) {
-                if (obj instanceof Player) {
-                    Player p = (Player) obj;
-                    Texture currentTexture = p.getCurrentTexture();
-                    renderer.render(currentTexture, 
-                        p.getX() - 32 - cameraX, p.getY() - 32 + p.getJumpOffset() - cameraY, 64, 64);
-                } else if (obj instanceof GameObject) {
-                    GameObject gameObj = (GameObject) obj;
-                    if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
-                        Trackable trackable = (Trackable) gameObj;
-                        Damageable damageable = (Damageable) gameObj;
-                        Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
-                                               turretTextures.get(trackable.getFacingDirection());
-                        renderer.render(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128);
-                    } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
-                        // Render foliage
-                        renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
-                    }
-                }
-            }
-            
-            // Render bullets (smaller size, with camera offset)
-            for (Bullet bullet : bullets) {
-                renderer.render(bulletTexture, bullet.getX() - 3 - cameraX, bullet.getY() - 3 - cameraY, 6, 6);
-            }
-            
-            // Render shell casings with rotation and fade (smaller size, with camera offset)
-            for (ShellCasing shell : shells) {
-                renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
-            }
-            
-            // Render health bar
-            renderHealthBar();
-            
-            // Render ammo bar
-            renderAmmoBar();
-            
-            // Render grid overlay last (always on top)
-            // Grid system removed
-            
-            // Render vignette overlay (full screen with reduced opacity)
-            // Render vignette overlay (full screen with damage flash effect)
-            float flashIntensity = player.getDamageFlashIntensity();
-            float red = 1.0f + flashIntensity * 0.5f; // Add red tint when damaged
-            float green = 1.0f - flashIntensity * 0.3f; // Reduce green when damaged
-            float blue = 1.0f - flashIntensity * 0.3f; // Reduce blue when damaged
-            renderer.renderTextureWithColor(vignetteTexture, 0, 0, 640, 360, red, green, blue, 0.15f);
+            // Render everything
+            render();
             
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
     }
     
-    private boolean isPlayerHit(float bulletX, float bulletY) {
-        // Player sprite hitbox (12 pixels wide, full height)
-        return bulletX >= player.getX() - 6 && bulletX <= player.getX() + 6 && 
-               bulletY >= player.getY() - 32 && bulletY <= player.getY() + 32;
+    private void render() {
+        renderer.clear();
+        
+        Player player = gameLoop.getPlayer();
+        float cameraX = gameLoop.getCameraX();
+        float cameraY = gameLoop.getCameraY();
+        
+        // Render tiled grass background
+        renderTiledBackground();
+        
+        // Render player shadow
+        float shadowSize = 40 - (player.getJumpOffset() * 0.3f);
+        renderer.render(shadowTexture, 
+            player.getX() - shadowSize/2 - cameraX, player.getY() - shadowSize/2 - 20 - cameraY, shadowSize, shadowSize);
+        
+        // Render all objects with depth sorting
+        renderGameObjects();
+        
+        // Render bullets
+        for (Bullet bullet : gameLoop.getBullets()) {
+            renderer.render(bulletTexture, bullet.getX() - 3 - cameraX, bullet.getY() - 3 - cameraY, 6, 6);
+        }
+        
+        // Render shell casings
+        for (ShellCasing shell : gameLoop.getShells()) {
+            renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
+        }
+        
+        // Render UI
+        renderHealthBar();
+        renderAmmoBar();
+        
+        // Render vignette overlay
+        Player p = gameLoop.getPlayer();
+        float flashIntensity = p.getDamageFlashIntensity();
+        float red = 1.0f + flashIntensity * 0.5f;
+        float green = 1.0f - flashIntensity * 0.3f;
+        float blue = 1.0f - flashIntensity * 0.3f;
+        renderer.renderTextureWithColor(vignetteTexture, 0, 0, 704, 396, red, green, blue, 0.15f);
+    }
+    
+    private void renderGameObjects() {
+        Player player = gameLoop.getPlayer();
+        float cameraX = gameLoop.getCameraX();
+        float cameraY = gameLoop.getCameraY();
+        
+        // Create list of all GameObjects for depth sorting
+        List<GameObject> allGameObjects = new ArrayList<>();
+        allGameObjects.addAll(gameLoop.getTurrets());
+        allGameObjects.addAll(gameLoop.getFoliages());
+        
+        // Sort GameObjects by Y position for depth (higher Y renders first/behind)
+        allGameObjects.sort((a, b) -> {
+            float aY = (a instanceof Renderable) ? ((Renderable) a).getRenderY() : a.getY();
+            float bY = (b instanceof Renderable) ? ((Renderable) b).getRenderY() : b.getY();
+            return Float.compare(bY, aY); // Reversed for proper depth
+        });
+        
+        // Render player and GameObjects in correct depth order
+        boolean playerRendered = false;
+        for (GameObject gameObj : allGameObjects) {
+            // Render player if we've reached the correct depth
+            if (!playerRendered && player.getY() <= gameObj.getY()) {
+                Texture currentTexture = player.getCurrentTexture();
+                renderer.render(currentTexture, 
+                    player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
+                playerRendered = true;
+            }
+            
+            // Render GameObject
+            if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
+                Trackable trackable = (Trackable) gameObj;
+                Damageable damageable = (Damageable) gameObj;
+                Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
+                                       turretTextures.get(trackable.getFacingDirection());
+                renderer.render(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128);
+            } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
+                renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
+            }
+        }
+        
+        // Render player if not rendered yet (in front of all objects)
+        if (!playerRendered) {
+            Texture currentTexture = player.getCurrentTexture();
+            renderer.render(currentTexture, 
+                player.getX() - 32 - cameraX, player.getY() - 32 + player.getJumpOffset() - cameraY, 64, 64);
+        }
     }
     
     private void renderHealthBar() {
+        Player player = gameLoop.getPlayer();
+        float cameraX = gameLoop.getCameraX();
+        float cameraY = gameLoop.getCameraY();
+        
         float healthBarWidth = 40;
         float healthBarHeight = 6;
         float healthBarX = player.getX() - healthBarWidth/2 - cameraX;
-        float healthBarY = player.getY() - 45 - cameraY; // Above player
+        float healthBarY = player.getY() - 45 - cameraY;
         
-        // Calculate health percentage and color
         float healthPercent = player.getHealth() / 100.0f;
-        float red = 1.0f - healthPercent;   // More red as health decreases
-        float green = healthPercent;        // More green as health increases
+        float red = 1.0f - healthPercent;
+        float green = healthPercent;
         
-        // Render white outline (always visible)
         renderer.renderRectOutline(healthBarX, healthBarY, healthBarWidth, healthBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
         
-        // Render health fill (from left to right based on health percentage)
         float fillWidth = healthBarWidth * healthPercent;
         if (fillWidth > 0) {
             renderer.renderRect(healthBarX, healthBarY, fillWidth, healthBarHeight, red, green, 0.0f, 1.0f);
@@ -401,30 +266,32 @@ public class Game {
     }
     
     private void renderAmmoBar() {
+        Player player = gameLoop.getPlayer();
+        float cameraX = gameLoop.getCameraX();
+        float cameraY = gameLoop.getCameraY();
+        
         float ammoBarWidth = 40;
         float ammoBarHeight = 6;
         float ammoBarX = player.getX() - ammoBarWidth/2 - cameraX;
-        float ammoBarY = player.getY() - 55 - cameraY; // Below health bar
+        float ammoBarY = player.getY() - 55 - cameraY;
         
-        // Calculate ammo percentage
         float ammoPercent = player.getAmmo() / 5.0f;
         
-        // Render white outline (always visible)
         renderer.renderRectOutline(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
         
-        // Render ammo fill (blue color, from left to right based on ammo percentage)
         float fillWidth = ammoBarWidth * ammoPercent;
         if (fillWidth > 0) {
-            renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, 0.0f, 0.5f, 1.0f, 1.0f); // Blue color
+            renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, 0.0f, 0.5f, 1.0f, 1.0f);
         }
     }
     
     private void renderTiledBackground() {
-        int tileSize = 64; // Size of each grass tile
-        float mapWidth = 2560;
-        float mapHeight = 1440;
+        float cameraX = gameLoop.getCameraX();
+        float cameraY = gameLoop.getCameraY();
+        int tileSize = 64;
+        float mapWidth = gameLoop.getMapWidth();
+        float mapHeight = gameLoop.getMapHeight();
         
-        // Calculate which tiles are visible based on camera position
         int startTileX = Math.max(0, (int)(cameraX / tileSize) - 1);
         int startTileY = Math.max(0, (int)(cameraY / tileSize) - 1);
         int endTileX = Math.min((int)(mapWidth / tileSize), startTileX + (640 / tileSize) + 3);
@@ -436,29 +303,6 @@ public class Game {
                 float worldY = y * tileSize;
                 renderer.render(grassTexture, worldX - cameraX, worldY - cameraY, tileSize, tileSize);
             }
-        }
-    }
-    
-    private void renderMapBoundaries() {
-        float mapWidth = 2560;
-        float mapHeight = 1440;
-        
-        // Only render boundaries if they're visible on screen
-        // Top boundary
-        if (cameraY <= 10) {
-            renderer.render(bulletTexture, 0 - cameraX, 0 - cameraY, mapWidth, 4);
-        }
-        // Bottom boundary  
-        if (cameraY + 360 >= mapHeight - 10) {
-            renderer.render(bulletTexture, 0 - cameraX, mapHeight - 4 - cameraY, mapWidth, 4);
-        }
-        // Left boundary
-        if (cameraX <= 10) {
-            renderer.render(bulletTexture, 0 - cameraX, 0 - cameraY, 4, mapHeight);
-        }
-        // Right boundary
-        if (cameraX + 640 >= mapWidth - 10) {
-            renderer.render(bulletTexture, mapWidth - 4 - cameraX, 0 - cameraY, 4, mapHeight);
         }
     }
     
