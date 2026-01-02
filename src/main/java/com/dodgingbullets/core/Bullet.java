@@ -4,12 +4,14 @@ public class Bullet {
     private float x, y;
     private float velocityX, velocityY;
     private long creationTime;
+    private boolean isPlayerBullet;
     private static final long LIFETIME = 1000; // 2 seconds in milliseconds
     private static final float SPEED = 10.0f;
     
-    public Bullet(float startX, float startY, Direction direction) {
+    public Bullet(float startX, float startY, Direction direction, boolean isPlayerBullet) {
         this.x = startX;
         this.y = startY;
+        this.isPlayerBullet = isPlayerBullet;
         this.creationTime = System.currentTimeMillis();
         
         // Set velocity based on direction
@@ -25,9 +27,10 @@ public class Bullet {
         }
     }
     
-    public Bullet(float startX, float startY, double angle) {
+    public Bullet(float startX, float startY, double angle, boolean isPlayerBullet) {
         this.x = startX;
         this.y = startY;
+        this.isPlayerBullet = isPlayerBullet;
         this.creationTime = System.currentTimeMillis();
         
         // Set velocity based on angle
@@ -46,4 +49,5 @@ public class Bullet {
     
     public float getX() { return x; }
     public float getY() { return y; }
+    public boolean isPlayerBullet() { return isPlayerBullet; }
 }

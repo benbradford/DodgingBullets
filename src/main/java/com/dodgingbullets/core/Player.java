@@ -15,6 +15,20 @@ public class Player {
     private static final long MAX_CHARGE_TIME = 500; // milliseconds
     private static final float GRAVITY = 0.3f;
     
+    // Health system
+    private int health = 100;
+    private static final int MAX_HEALTH = 100;
+    private long lastDamageTime = 0;
+    private static final long REGEN_DELAY = 3000; // 3 seconds
+    private static final int REGEN_RATE = 15; // 15 health per second
+    private long lastRegenTime = 0;
+    private static final long DAMAGE_FLASH_DURATION = 500; // 0.5 seconds
+    
+    // Ammo system
+    private int ammo = 5;
+    private static final int MAX_AMMO = 5;
+    private long lastAmmoRegenTime = 0;
+    
     private Direction currentDirection = Direction.UP;
     private Direction shootingDirection = null;
     private long lastShotTime = 0;
@@ -204,6 +218,23 @@ public class Player {
             lastAnimationTime = System.currentTimeMillis();
         }
         
+        // Health regeneration
+        long now = System.currentTimeMillis();
+        if (health < MAX_HEALTH && now - lastDamageTime >= REGEN_DELAY) {
+            if (now - lastRegenTime >= 1000) { // 1 second intervals
+                health = Math.min(MAX_HEALTH, health + REGEN_RATE);
+                lastRegenTime = now;
+            }
+        }
+        
+        // Ammo regeneration
+        if (ammo < MAX_AMMO) {
+            if (now - lastAmmoRegenTime >= 1000) { // 1 second intervals
+                ammo = Math.min(MAX_AMMO, ammo + 1);
+                lastAmmoRegenTime = now;
+            }
+        }
+        
         if (isMoving) {
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastAnimationTime > ANIMATION_DELAY) {
@@ -277,6 +308,34 @@ public class Player {
     public float getY() { return y; }
     public float getJumpOffset() { return jumpOffset; }
     public Direction getCurrentDirection() { return currentDirection; }
+    public int getHealth() { return health; }
+    public int getAmmo() { return ammo; }
+    
+    public boolean canShoot() {
+        return ammo > 0;
+    }
+    
+    public void shoot() {
+        if (ammo > 0) {
+            ammo--;
+            lastAmmoRegenTime = System.currentTimeMillis(); // Reset ammo regen timer
+        }
+    }
+    
+    public void takeDamage(int damage) {
+        health = Math.max(0, health - damage);
+        lastDamageTime = System.currentTimeMillis();
+        lastRegenTime = System.currentTimeMillis(); // Reset regen timer
+    }
+    
+    public float getDamageFlashIntensity() {
+        long timeSinceDamage = System.currentTimeMillis() - lastDamageTime;
+        if (timeSinceDamage < DAMAGE_FLASH_DURATION) {
+            // Fade from 1.0 to 0.0 over the flash duration
+            return 1.0f - (timeSinceDamage / (float)DAMAGE_FLASH_DURATION);
+        }
+        return 0.0f;
+    }
     
     public float[] getGunBarrelPosition() {
         // Use shooting direction if within override time, otherwise use current direction

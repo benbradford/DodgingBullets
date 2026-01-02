@@ -34,6 +34,7 @@ public class Game {
     private Texture bulletTexture;
     private Texture shellTexture;
     private Texture brokenTurretTexture;
+    private Texture vignetteTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
@@ -132,6 +133,7 @@ public class Game {
         shadowTexture = renderer.loadTexture("assets/shadow.png");
         bulletTexture = renderer.loadTexture("assets/bullet.png");
         shellTexture = renderer.loadTexture("assets/shell.png");
+        vignetteTexture = renderer.loadTexture("assets/vin.png");
         
         // Load turret textures
         turretTextures.put(Direction.RIGHT, renderer.loadTexture("assets/gunturret_e.png"));
@@ -147,7 +149,7 @@ public class Game {
         brokenTurretTexture = renderer.loadTexture("assets/gunturret_broken.png");
         
         // Create turret at a fixed position
-        turret = new Turret(500, 250);
+        turret = new Turret(800, 150);
         
         player = new Player(320, 180); // Center of screen
         player.loadTextures(renderer);
@@ -190,17 +192,26 @@ public class Game {
                 Direction shootDirection = Player.calculateDirectionFromAngle(angle);
                 player.setShootingDirection(shootDirection);
                 
-                float[] gunPos = player.getGunBarrelPosition();
-                bullets.add(new Bullet(gunPos[0], gunPos[1], angle));
-                // Add shell casing effect
-                shells.add(new ShellCasing(player.getX(), player.getY()));
+                // Only shoot if player has ammo
+                if (player.canShoot()) {
+                    player.shoot();
+                    float[] gunPos = player.getGunBarrelPosition();
+                    bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true)); // Player bullet
+                    // Add shell casing effect
+                    shells.add(new ShellCasing(player.getX(), player.getY()));
+                }
                 mousePressed = false;
             }
             
             // Handle turret shooting
-            if (turret.shouldShoot()) {
+            if (!turret.isDestroyed() && turret.canSeePlayer(player.getX(), player.getY()) && 
+                turret.canSeePlayerInCurrentDirection(player.getX(), player.getY()) && turret.shouldShoot()) {
                 float[] barrelPos = turret.getBarrelPosition();
-                bullets.add(new Bullet(barrelPos[0], barrelPos[1], turret.getFacingDirection()));
+                // Calculate angle from turret to player
+                double deltaX = player.getX() - turret.getX();
+                double deltaY = player.getY() - turret.getY();
+                double angleToPlayer = Math.atan2(deltaY, deltaX);
+                bullets.add(new Bullet(barrelPos[0], barrelPos[1], angleToPlayer, false)); // Enemy bullet
             }
             
             // Update bullets and check collisions
@@ -209,9 +220,16 @@ public class Game {
                 Bullet bullet = bulletIter.next();
                 bullet.update();
                 
-                // Check collision with turret
-                if (turret.isInSpriteHitbox(bullet.getX(), bullet.getY())) {
+                // Check collision with turret (only player bullets can damage turret)
+                if (bullet.isPlayerBullet() && turret.isInSpriteHitbox(bullet.getX(), bullet.getY())) {
                     turret.takeDamage();
+                    bulletIter.remove(); // Remove bullet on hit
+                    continue;
+                }
+                
+                // Check collision with player (only enemy bullets can damage player)
+                if (!bullet.isPlayerBullet() && isPlayerHit(bullet.getX(), bullet.getY())) {
+                    player.takeDamage(5);
                     bulletIter.remove(); // Remove bullet on hit
                     continue;
                 }
@@ -270,11 +288,71 @@ public class Game {
                 renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
             }
             
+            // Render health bar
+            renderHealthBar();
+            
+            // Render ammo bar
+            renderAmmoBar();
+            
             // Render grid overlay last (always on top)
             renderGrid();
             
+            // Render vignette overlay (full screen with reduced opacity)
+            // Render vignette overlay (full screen with damage flash effect)
+            float flashIntensity = player.getDamageFlashIntensity();
+            float red = 1.0f + flashIntensity * 0.5f; // Add red tint when damaged
+            float green = 1.0f - flashIntensity * 0.3f; // Reduce green when damaged
+            float blue = 1.0f - flashIntensity * 0.3f; // Reduce blue when damaged
+            renderer.renderTextureWithColor(vignetteTexture, 0, 0, 640, 360, red, green, blue, 0.15f);
+            
             glfwSwapBuffers(window);
             glfwPollEvents();
+        }
+    }
+    
+    private boolean isPlayerHit(float bulletX, float bulletY) {
+        // Player sprite hitbox (12 pixels wide, full height)
+        return bulletX >= player.getX() - 6 && bulletX <= player.getX() + 6 && 
+               bulletY >= player.getY() - 32 && bulletY <= player.getY() + 32;
+    }
+    
+    private void renderHealthBar() {
+        float healthBarWidth = 40;
+        float healthBarHeight = 6;
+        float healthBarX = player.getX() - healthBarWidth/2 - cameraX;
+        float healthBarY = player.getY() - 45 - cameraY; // Above player
+        
+        // Calculate health percentage and color
+        float healthPercent = player.getHealth() / 100.0f;
+        float red = 1.0f - healthPercent;   // More red as health decreases
+        float green = healthPercent;        // More green as health increases
+        
+        // Render white outline (always visible)
+        renderer.renderRectOutline(healthBarX, healthBarY, healthBarWidth, healthBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+        
+        // Render health fill (from left to right based on health percentage)
+        float fillWidth = healthBarWidth * healthPercent;
+        if (fillWidth > 0) {
+            renderer.renderRect(healthBarX, healthBarY, fillWidth, healthBarHeight, red, green, 0.0f, 1.0f);
+        }
+    }
+    
+    private void renderAmmoBar() {
+        float ammoBarWidth = 40;
+        float ammoBarHeight = 6;
+        float ammoBarX = player.getX() - ammoBarWidth/2 - cameraX;
+        float ammoBarY = player.getY() - 55 - cameraY; // Below health bar
+        
+        // Calculate ammo percentage
+        float ammoPercent = player.getAmmo() / 5.0f;
+        
+        // Render white outline (always visible)
+        renderer.renderRectOutline(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+        
+        // Render ammo fill (blue color, from left to right based on ammo percentage)
+        float fillWidth = ammoBarWidth * ammoPercent;
+        if (fillWidth > 0) {
+            renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, 0.0f, 0.5f, 1.0f, 1.0f); // Blue color
         }
     }
     

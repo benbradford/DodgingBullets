@@ -5,11 +5,35 @@ A Java OpenGL 2D top-down game featuring a character that can move in 8 directio
 
 # DodgingBullets
 
-A 2D top-down Java game built with LWJGL/OpenGL featuring grid-based collision detection, mouse-controlled shooting, and enemy combat mechanics.
+A 2D top-down Java game built with LWJGL/OpenGL featuring grid-based collision detection, mouse-controlled shooting, enemy combat mechanics, health/ammo systems, and intelligent AI turrets.
 
 ## Game Overview
 
-DodgingBullets is an isometric-style action game where the player navigates a tiled grass environment, shoots at turret enemies, and avoids obstacles. The game features a sophisticated collision system, camera controls, and visual effects.
+DodgingBullets is an isometric-style action game where the player navigates a tiled grass environment, shoots at intelligent turret enemies, manages health and ammunition, and survives enemy fire. The game features sophisticated collision systems, camera controls, visual effects, and tactical AI behavior.
+
+## Core Gameplay Features
+
+### Player Systems
+- **Health System**: 100 HP starting health, loses 5 HP per enemy hit
+- **Health Regeneration**: After 3 seconds without damage, regenerates 15 HP per second
+- **Ammo System**: 5 starting ammo, consumes 1 per shot, regenerates 1 per second
+- **Visual Feedback**: Health bar (green→red) and ammo bar (blue) displayed above player
+- **Damage Flash**: Screen vignette flashes red when taking damage (0.5 second fade)
+
+### Combat Mechanics
+- **Bullet Ownership**: Player bullets (damage enemies) vs Enemy bullets (damage player)
+- **Collision Detection**: Separate hitboxes for sprite collision vs movement blocking
+- **Shell Casings**: Realistic ejected shell physics with fade-out animations
+- **Directional Shooting**: Mouse-controlled aiming with angle-based trajectories
+
+### Enemy AI - Intelligent Turrets
+- **Sight Range**: 400 pixel detection radius
+- **Directional Vision**: 45-degree field of view cone
+- **Idle Scanning**: Rotates clockwise every 2 seconds when no player detected
+- **Alert System**: Immediately tracks player when shot, exits idle state
+- **Line of Sight**: Only engages when player is within view cone AND range
+- **Health**: 100 HP, takes 10 damage per hit, requires 10 shots to destroy
+- **Fire Rate**: Shoots every 0.5 seconds when player is in sight
 
 ## Technical Architecture
 
@@ -43,8 +67,9 @@ The game uses two types of hitboxes for different collision purposes:
 - **Control**: Mouse-based aiming and shooting
 - **Trajectory**: Bullets travel in straight lines toward mouse cursor position
 - **Angle Calculation**: Uses mouse position relative to player for bullet direction
-- **Damage**: 10 damage per bullet hit
+- **Damage**: Player bullets deal 10 damage, enemy bullets deal 5 damage
 - **Visual**: Bright-colored bullets for gameplay clarity
+- **Ammo Management**: Limited ammunition with regeneration system
 
 ### Shell Casing System
 - **Physics**: Ejected shell casings with realistic trajectories
@@ -57,6 +82,8 @@ The game uses two types of hitboxes for different collision purposes:
 - **Destruction**: Requires 10 shots to destroy
 - **States**: Intact and destroyed visual states
 - **Hitboxes**: 64x64 sprite hitbox, 64x32 movement hitbox
+- **AI Behavior**: Intelligent scanning, tracking, and engagement
+- **Directional Sprites**: 8-directional turret sprites (N, NE, E, SE, S, SW, W, NW)
 
 ### Camera System
 - **Centering**: Camera follows player position
@@ -69,12 +96,15 @@ The game uses two types of hitboxes for different collision purposes:
 - **Isometric Layering**: Objects with higher Y-values render in front
 - **Background**: Seamlessly tiled grass textures
 - **Visual Contrast**: Darker backgrounds with brighter projectiles for clarity
+- **Primitive Rendering**: Health/ammo bars use OpenGL primitives for clean UI
+- **Vignette Effect**: Subtle screen darkening with damage flash feedback
 
 ### Texture System
 - **Grass Background**: Procedurally generated seamless tiling textures
 - **Sprites**: Player, turret, bullet, and shell casing graphics
 - **Shadows**: Visual depth effects for sprites
 - **Optimization**: Efficient texture loading and rendering
+- **Vignette Overlay**: Screen edge darkening effect with damage feedback
 
 ## File Structure
 - `src/main/java/` - Java source code
@@ -92,11 +122,14 @@ mvn compile exec:java
 - Dual hitbox system for sprite and movement collision
 - Mouse-controlled shooting with angle-based trajectories
 - Camera system with boundary clamping
-- Turret enemies with health/damage mechanics
+- Intelligent turret enemies with sight-based AI
+- Health and ammo management systems
+- Visual feedback through UI bars and screen effects
 - Shell casing particle effects
 - Depth-sorted isometric rendering
 - Seamless tiled background textures
 - WASD movement controls with jumping mechanics
+- Tactical combat requiring ammo and health management
 
 ## Technical Notes
 - Uses LWJGL for OpenGL rendering
@@ -104,7 +137,9 @@ mvn compile exec:java
 - Axis-independent collision allows natural movement
 - Visual improvements include darker backgrounds and brighter bullets
 - Proper isometric depth sorting based on Y-position coordinates
-
+- Primitive rendering for UI elements (health/ammo bars)
+- Bullet ownership system prevents friendly fire
+- AI state management for realistic enemy behavior
 
 ## Running the Game
 ```bash
@@ -119,11 +154,20 @@ cd DodgingBullets
 - **Platform**: macOS ARM64 (Apple Silicon)
 - **JVM Args**: Requires `-XstartOnFirstThread` for macOS GLFW compatibility
 
+## Gameplay Mechanics Summary
+1. **Survival**: Manage health (regenerates after 3s) and ammo (regenerates continuously)
+2. **Combat**: Shoot turrets while avoiding their line of sight and range
+3. **Tactics**: Use turret scanning patterns to approach from blind spots
+4. **Resource Management**: Limited ammo requires strategic shooting
+5. **Visual Feedback**: Health/ammo bars and damage flash effects guide gameplay
+
 ## Future Expansion Plans
-- Add enemies and bullet mechanics
-- Implement grenade throwing
+- Add more enemy types with different AI behaviors
+- Implement grenade throwing mechanics
+- Add power-ups and weapon upgrades
 - Port to Android using same core logic with AndroidRenderer
-- Add collision detection and game mechanics
+- Expand map with multiple levels and objectives
+- Add sound effects and background music
 
 ## Architecture Benefits
-The abstracted Renderer interface allows easy swapping between desktop OpenGL and future Android OpenGL implementations without changing core game logic.
+The abstracted Renderer interface allows easy swapping between desktop OpenGL and future Android OpenGL implementations without changing core game logic. The modular AI system makes it easy to add new enemy types with different behaviors.

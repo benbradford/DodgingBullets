@@ -91,6 +91,53 @@ public class DesktopRenderer implements Renderer {
     }
     
     @Override
+    public void renderRect(float x, float y, float width, float height, float r, float g, float b, float a) {
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(r, g, b, a);
+        
+        glBegin(GL_QUADS);
+        glVertex2f(x, y);
+        glVertex2f(x + width, y);
+        glVertex2f(x + width, y + height);
+        glVertex2f(x, y + height);
+        glEnd();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glEnable(GL_TEXTURE_2D);
+    }
+    
+    @Override
+    public void renderRectOutline(float x, float y, float width, float height, float r, float g, float b, float a) {
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(r, g, b, a);
+        
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(x, y);
+        glVertex2f(x + width, y);
+        glVertex2f(x + width, y + height);
+        glVertex2f(x, y + height);
+        glEnd();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glEnable(GL_TEXTURE_2D);
+    }
+    
+    @Override
+    public void renderTextureWithColor(Texture texture, float x, float y, float width, float height, float r, float g, float b, float a) {
+        glBindTexture(GL_TEXTURE_2D, texture.getTextureId());
+        glColor4f(r, g, b, a);
+        
+        glBegin(GL_QUADS);
+        glTexCoord2f(0, 1); glVertex2f(x, y);
+        glTexCoord2f(1, 1); glVertex2f(x + width, y);
+        glTexCoord2f(1, 0); glVertex2f(x + width, y + height);
+        glTexCoord2f(0, 0); glVertex2f(x, y + height);
+        glEnd();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    
+    @Override
     public void present() {
         // GLFW swap buffers is handled in main loop
     }
