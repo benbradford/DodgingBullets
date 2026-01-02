@@ -36,6 +36,10 @@ public class Player {
     private int specialBullets = 0;
     private static final int MAX_SPECIAL_BULLETS = 100;
     
+    // Grenade system
+    private int grenades = 1;
+    private long lastGrenadeTime = 0;
+    
     private Direction currentDirection = Direction.UP;
     private Direction shootingDirection = null;
     private long lastShotTime = 0;
@@ -349,6 +353,21 @@ public class Player {
             return 1.0f - (timeSinceDamage / (float)DAMAGE_FLASH_DURATION);
         }
         return 0.0f;
+    }
+    
+    public boolean canThrowGrenade() {
+        return grenades > 0 || System.currentTimeMillis() - lastGrenadeTime >= GameConfig.GRENADE_COOLDOWN;
+    }
+    
+    public void throwGrenade() {
+        if (grenades > 0) {
+            grenades--;
+        }
+        lastGrenadeTime = System.currentTimeMillis();
+    }
+    
+    public int getGrenades() {
+        return grenades;
     }
     
     public float[] getGunBarrelPosition() {

@@ -19,12 +19,14 @@ public class GameRenderer {
     private Texture foliageTexture;
     private Texture ammoFullTexture;
     private Texture ammoEmptyTexture;
+    private Texture grenadeTexture;
     private Map<String, Texture> explosionTextures;
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
                            Texture brokenTurretTexture, Texture vignetteTexture, Texture foliageTexture,
-                           Map<String, Texture> explosionTextures, Texture ammoFullTexture, Texture ammoEmptyTexture) {
+                           Map<String, Texture> explosionTextures, Texture ammoFullTexture, Texture ammoEmptyTexture,
+                           Texture grenadeTexture) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -35,6 +37,7 @@ public class GameRenderer {
         this.foliageTexture = foliageTexture;
         this.ammoFullTexture = ammoFullTexture;
         this.ammoEmptyTexture = ammoEmptyTexture;
+        this.grenadeTexture = grenadeTexture;
         this.explosionTextures = explosionTextures;
     }
     
@@ -73,6 +76,15 @@ public class GameRenderer {
         // Render shell casings
         for (ShellCasing shell : gameLoop.getShells()) {
             renderer.renderRotatedWithAlpha(shellTexture, shell.getX() - 3 - cameraX, shell.getY() - 1.5f - cameraY, 6, 3, shell.getRotation(), shell.getAlpha());
+        }
+        
+        // Render grenades
+        for (Grenade grenade : gameLoop.getGrenades()) {
+            float grenadeX = grenade.getX() - cameraX;
+            float grenadeY = grenade.getY() - cameraY;
+            float scale = grenade.getScale();
+            float size = 24 * scale; // 1.5x bigger (16 * 1.5 = 24)
+            renderer.renderRotated(grenadeTexture, grenadeX - size/2, grenadeY - size/2, size, size, grenade.getRotation());
         }
         
         // Render explosions on top of everything

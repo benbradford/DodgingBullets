@@ -12,6 +12,7 @@ public class GameLoop {
     private Player player;
     private List<Bullet> bullets = new ArrayList<>();
     private List<ShellCasing> shells = new ArrayList<>();
+    private List<Grenade> grenades = new ArrayList<>();
     private List<GameObject> gameObjects = new ArrayList<>();
     private List<GameObject> foliages = new ArrayList<>();
     private List<GameObject> ammoPowerUps = new ArrayList<>();
@@ -40,9 +41,9 @@ public class GameLoop {
         player.setCollidableObjects(allCollidables);
     }
     
-    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, double mouseX, double mouseY) {
+    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, boolean grenadePressed, double mouseX, double mouseY) {
         // Process input
-        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, mouseX, mouseY);
+        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
         
         // Update player
         player.update(input.keys, input.jumpPressed, input.jumpHeld);
@@ -57,11 +58,15 @@ public class GameLoop {
         // Handle shooting
         handleShooting(input);
         
+        // Handle grenades
+        handleGrenades(input);
+        
         // Check ammo power-up collection
         checkAmmoPowerUpCollection();
         
         // Update and check collisions
         updateBullets();
+        updateGrenades();
         updateExplosions();
         updateShells();
     }
@@ -157,6 +162,49 @@ public class GameLoop {
         }
     }
     
+    private void handleGrenades(InputState input) {
+        if (input.grenadePressed && player.canThrowGrenade()) {
+            float[] gunPos = player.getGunBarrelPosition();
+            
+            // Create all collidable objects list for grenade collision
+            List<GameObject> allCollidables = new ArrayList<>();
+            allCollidables.addAll(gameObjects);
+            allCollidables.addAll(foliages);
+            allCollidables.addAll(ammoPowerUps);
+            
+            grenades.add(new Grenade(gunPos[0], gunPos[1], (float)input.worldMouseX, (float)input.worldMouseY, allCollidables));
+            player.throwGrenade();
+        }
+    }
+    
+    private void updateGrenades() {
+        Iterator<Grenade> grenadeIter = grenades.iterator();
+        while (grenadeIter.hasNext()) {
+            Grenade grenade = grenadeIter.next();
+            grenade.update(GameConfig.DELTA_TIME);
+            
+            if (grenade.shouldExplode()) {
+                // Create explosion at grenade position
+                explosions.add(new Explosion(grenade.getX(), grenade.getY()));
+                
+                // Damage enemies in explosion radius
+                for (GameObject gameObject : gameObjects) {
+                    if (gameObject instanceof Damageable) {
+                        Damageable damageable = (Damageable) gameObject;
+                        float distance = new Vec2(gameObject.getX(), gameObject.getY()).distance(new Vec2(grenade.getX(), grenade.getY()));
+                        if (distance <= 64) { // Explosion radius
+                            damageable.takeDamage(GameConfig.GRENADE_EXPLOSION_DAMAGE);
+                        }
+                    }
+                }
+                
+                grenadeIter.remove();
+            } else if (!grenade.isActive()) {
+                grenadeIter.remove();
+            }
+        }
+    }
+    
     private void updateExplosions() {
         Iterator<Explosion> explosionIter = explosions.iterator();
         while (explosionIter.hasNext()) {
@@ -186,6 +234,7 @@ public class GameLoop {
     public Player getPlayer() { return player; }
     public List<Bullet> getBullets() { return bullets; }
     public List<ShellCasing> getShells() { return shells; }
+    public List<Grenade> getGrenades() { return grenades; }
     public List<GameObject> getGameObjects() { return gameObjects; }
     public List<GameObject> getFoliages() { return foliages; }
     public List<GameObject> getAmmoPowerUps() { return ammoPowerUps; }

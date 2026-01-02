@@ -17,6 +17,14 @@ public class GameConfig {
     public static final int PLAYER_DAMAGE = 10;
     public static final int ENEMY_DAMAGE = 5;
     public static final int EXPLOSION_DAMAGE = 1;
+    public static final int GRENADE_EXPLOSION_DAMAGE = 100;
+    
+    // Grenade constants
+    public static final float GRENADE_MIN_RANGE = 50;
+    public static final float GRENADE_MAX_RANGE = 200;
+    public static final float GRENADE_BOUNCE_DISTANCE = 15; // 10-20 pixels
+    public static final long GRENADE_COOLDOWN = 3000; // 3 seconds
+    public static final long GRENADE_FUSE_TIME = 1000; // 1 second after landing
 
     // Rendering constants
     public static final int TILE_SIZE = 64;

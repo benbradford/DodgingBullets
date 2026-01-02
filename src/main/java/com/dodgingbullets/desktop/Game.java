@@ -29,6 +29,7 @@ public class Game {
     private Texture foliageTexture;
     private Texture ammoFullTexture;
     private Texture ammoEmptyTexture;
+    private Texture grenadeTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private Map<String, Texture> explosionTextures = new HashMap<>();
     private boolean[] keys = new boolean[4]; // W, A, S, D
@@ -36,6 +37,7 @@ public class Game {
     private boolean jumpHeld = false;
     private boolean mousePressed = false;
     private boolean mouseHeld = false;
+    private boolean grenadePressed = false;
     private double mouseX = 0;
     private double mouseY = 0;
     
@@ -91,7 +93,7 @@ public class Game {
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture, explosionTextures,
-                                 ammoFullTexture, ammoEmptyTexture);
+                                 ammoFullTexture, ammoEmptyTexture, grenadeTexture);
         
         gameLoop = new GameLoop();
         gameLoop.initialize(renderer);
@@ -113,6 +115,9 @@ public class Game {
                     jumpPressed = (action == GLFW_PRESS);
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
                     if (action == GLFW_RELEASE) jumpHeld = false;
+                    break;
+                case GLFW_KEY_G:
+                    grenadePressed = (action == GLFW_PRESS);
                     break;
             }
         });
@@ -144,6 +149,7 @@ public class Game {
         foliageTexture = renderer.loadTexture("src/main/resources/textures/foliage.png");
         ammoFullTexture = renderer.loadTexture("assets/ammocratefull.png");
         ammoEmptyTexture = renderer.loadTexture("assets/ammocrateempty.png");
+        grenadeTexture = renderer.loadTexture("assets/grenade2_alpha.png");
         
         // Load turret textures for all 8 directions
         turretTextures.put(Direction.UP, renderer.loadTexture("src/main/resources/textures/turret_n.png"));
@@ -170,9 +176,10 @@ public class Game {
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
             // Update game logic
-            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, mouseX, mouseY);
+            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
             jumpPressed = false; // Reset jump press after processing
             mousePressed = false; // Reset mouse press after processing
+            grenadePressed = false; // Reset grenade press after processing
             
             // Render everything
             gameRenderer.render(renderer, gameLoop);
