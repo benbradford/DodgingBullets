@@ -12,6 +12,10 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     private long lastDirectionChange = 0;
     private static final long IDLE_ROTATION_INTERVAL = 2000;
     private static final int BULLET_DAMAGE = 10;
+    private static final long DAMAGE_FLASH_DURATION = 100;
+    private static final long FLASH_INTERVAL = 50; // Flash every 50ms
+    
+    private long lastDamageTime = 0;
     
     public GunTurret(float x, float y) {
         super(x, y, 100);
@@ -113,6 +117,7 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     public void takeDamage(int damage) {
         if (isDestroyed()) return;
         isIdle = false;
+        lastDamageTime = System.currentTimeMillis();
         super.takeDamage(damage);
     }
     
@@ -184,5 +189,13 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
             case UP_LEFT: return Direction.UP;
             default: return Direction.UP;
         }
+    }
+    
+    public boolean isDamageFlashing() {
+        long timeSinceDamage = System.currentTimeMillis() - lastDamageTime;
+        if (timeSinceDamage >= DAMAGE_FLASH_DURATION) return false;
+        
+        // Alternate between normal and white every FLASH_INTERVAL ms
+        return (timeSinceDamage / FLASH_INTERVAL) % 2 == 1;
     }
 }

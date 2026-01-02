@@ -15,8 +15,8 @@ public class Explosion extends GameObject implements Renderable, Collidable {
         "explosionanim_1_136.png"
     };
     
-    private static final float FRAME_DURATION = 0.2f;
-    private static final float SIZE = 83.2f; // 64 * 1.3 = 30% bigger
+    private static final float FRAME_DURATION = 0.13f;
+    private static final float SIZE = 120.f;
     
     private int currentFrame = 0;
     private float frameTimer = 0f;

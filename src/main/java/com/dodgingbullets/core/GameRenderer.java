@@ -2,6 +2,7 @@ package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
+import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +115,15 @@ public class GameRenderer {
                     Damageable damageable = (Damageable) gameObj;
                     Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
                                            turretTextures.get(trackable.getFacingDirection());
-                    renderer.render(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128);
+                    
+                    // Check if turret is flashing from damage
+                    if (gameObj instanceof GunTurret && ((GunTurret) gameObj).isDamageFlashing()) {
+                        // Flash red for damage
+                        renderer.renderTextureWithColor(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128, 1.0f, 0.0f, 0.0f, 1.0f);
+                    } else {
+                        // Normal rendering
+                        renderer.renderTextureWithColor(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128, 1.0f, 1.0f, 1.0f, 1.0f);
+                    }
                 } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
                     renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
                 }
