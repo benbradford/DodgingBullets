@@ -279,9 +279,18 @@ public class Player {
     public Direction getCurrentDirection() { return currentDirection; }
     
     public float[] getGunBarrelPosition() {
+        // Use shooting direction if within override time, otherwise use current direction
+        Direction displayDirection = currentDirection;
+        boolean withinOverrideTime = shootingDirection != null && System.currentTimeMillis() - lastShotTime < SHOOTING_OVERRIDE_DURATION;
+        boolean stationaryAfterShooting = shootingDirection != null && !isMoving;
+        
+        if (withinOverrideTime || stationaryAfterShooting) {
+            displayDirection = shootingDirection;
+        }
+        
         // Approximate gun barrel positions based on direction
         float gunX = x, gunY = y;
-        switch (currentDirection) {
+        switch (displayDirection) {
             case UP: gunX += 8; gunY += 20; break;
             case DOWN: gunX -= 8; gunY -= 20; break;
             case LEFT: gunX -= 20; gunY += 2; break;  // Raised from -5 to +2
