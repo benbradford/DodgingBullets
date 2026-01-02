@@ -8,6 +8,7 @@ public interface Renderer {
     void renderRotatedWithAlpha(Texture texture, float x, float y, float width, float height, float rotation, float alpha);
     void renderRect(float x, float y, float width, float height, float r, float g, float b, float a);
     void renderRectOutline(float x, float y, float width, float height, float r, float g, float b, float a);
+    void renderCircle(float x, float y, float radius, float r, float g, float b, float a);
     void renderTextureWithColor(Texture texture, float x, float y, float width, float height, float r, float g, float b, float a);
     void present();
     void cleanup();

@@ -32,6 +32,10 @@ public class Player {
     private static final int MAX_AMMO = 10;
     private long lastAmmoRegenTime = 0;
     
+    // Special bullets system
+    private int specialBullets = 0;
+    private static final int MAX_SPECIAL_BULLETS = 100;
+    
     private Direction currentDirection = Direction.UP;
     private Direction shootingDirection = null;
     private long lastShotTime = 0;
@@ -223,8 +227,8 @@ public class Player {
             }
         }
         
-        // Ammo regeneration
-        if (ammo < MAX_AMMO) {
+        // Ammo regeneration (only for regular ammo)
+        if (specialBullets == 0 && ammo < MAX_AMMO) {
             if (now - lastAmmoRegenTime >= 1000) { // 1 second intervals
                 ammo = Math.min(MAX_AMMO, ammo + 1);
                 lastAmmoRegenTime = now;
@@ -306,14 +310,27 @@ public class Player {
     public float getJumpOffset() { return jumpOffset; }
     public Direction getCurrentDirection() { return currentDirection; }
     public int getHealth() { return health; }
-    public int getAmmo() { return ammo; }
+    public int getAmmo() { 
+        return specialBullets > 0 ? specialBullets : ammo; 
+    }
+    
+    public boolean hasSpecialBullets() {
+        return specialBullets > 0;
+    }
+    
+    public void collectAmmoPowerUp() {
+        specialBullets = MAX_SPECIAL_BULLETS;
+        ammo = MAX_AMMO; // Restore regular ammo for when special runs out
+    }
     
     public boolean canShoot() {
-        return ammo > 0;
+        return specialBullets > 0 || ammo > 0;
     }
     
     public void shoot() {
-        if (ammo > 0) {
+        if (specialBullets > 0) {
+            specialBullets--;
+        } else if (ammo > 0) {
             ammo--;
             lastAmmoRegenTime = System.currentTimeMillis(); // Reset ammo regen timer
         }

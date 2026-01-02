@@ -174,4 +174,18 @@ public class DesktopRenderer implements Renderer {
             return new Texture(textureId, w.get(0), h.get(0));
         }
     }
+    
+    @Override
+    public void renderCircle(float x, float y, float radius, float r, float g, float b, float a) {
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(r, g, b, a);
+        glBegin(GL_TRIANGLE_FAN);
+        glVertex2f(x, y); // Center
+        for (int i = 0; i <= 16; i++) {
+            float angle = i * 2.0f * (float)Math.PI / 16;
+            glVertex2f(x + (float)Math.cos(angle) * radius, y + (float)Math.sin(angle) * radius);
+        }
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+    }
 }

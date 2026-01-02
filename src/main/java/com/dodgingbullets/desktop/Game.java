@@ -27,12 +27,15 @@ public class Game {
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
     private Texture foliageTexture;
+    private Texture ammoFullTexture;
+    private Texture ammoEmptyTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private Map<String, Texture> explosionTextures = new HashMap<>();
     private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
     private boolean mousePressed = false;
+    private boolean mouseHeld = false;
     private double mouseX = 0;
     private double mouseY = 0;
     
@@ -87,7 +90,8 @@ public class Game {
         
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
-                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture, explosionTextures);
+                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture, explosionTextures,
+                                 ammoFullTexture, ammoEmptyTexture);
         
         gameLoop = new GameLoop();
         gameLoop.initialize(renderer);
@@ -114,8 +118,13 @@ public class Game {
         });
         
         glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-            if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-                mousePressed = true;
+            if (button == GLFW_MOUSE_BUTTON_LEFT) {
+                if (action == GLFW_PRESS) {
+                    mousePressed = true;
+                    mouseHeld = true;
+                } else if (action == GLFW_RELEASE) {
+                    mouseHeld = false;
+                }
             }
         });
         
@@ -126,13 +135,15 @@ public class Game {
     }
     
     private void loadTextures() {
-        grassTexture = renderer.loadTexture("src/main/resources/textures/grass.png");
+        grassTexture = renderer.loadTexture("assets/vibrant_random_grass.png");
         shadowTexture = renderer.loadTexture("src/main/resources/textures/shadow.png");
         bulletTexture = renderer.loadTexture("src/main/resources/textures/bullet.png");
         shellTexture = renderer.loadTexture("src/main/resources/textures/shell.png");
         brokenTurretTexture = renderer.loadTexture("src/main/resources/textures/broken_turret.png");
         vignetteTexture = renderer.loadTexture("src/main/resources/textures/vignette.png");
         foliageTexture = renderer.loadTexture("src/main/resources/textures/foliage.png");
+        ammoFullTexture = renderer.loadTexture("assets/ammocratefull.png");
+        ammoEmptyTexture = renderer.loadTexture("assets/ammocrateempty.png");
         
         // Load turret textures for all 8 directions
         turretTextures.put(Direction.UP, renderer.loadTexture("src/main/resources/textures/turret_n.png"));
@@ -159,7 +170,7 @@ public class Game {
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
             // Update game logic
-            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseX, mouseY);
+            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, mouseX, mouseY);
             jumpPressed = false; // Reset jump press after processing
             mousePressed = false; // Reset mouse press after processing
             

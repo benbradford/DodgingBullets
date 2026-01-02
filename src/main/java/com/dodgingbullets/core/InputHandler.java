@@ -10,11 +10,11 @@ public class InputHandler {
     }
     
     public InputState processInput(boolean[] keys, boolean jumpPressed, boolean jumpHeld, 
-                                 boolean mousePressed, double mouseX, double mouseY) {
+                                 boolean mousePressed, boolean mouseHeld, double mouseX, double mouseY) {
         double worldMouseX = 0;
         double worldMouseY = 0;
         
-        if (mousePressed) {
+        if (mousePressed || mouseHeld) {
             // Scale mouse coordinates from window size to game world size
             double scaledMouseX = mouseX * (GameConfig.SCREEN_WIDTH / GameConfig.WINDOW_WIDTH);
             double scaledMouseY = mouseY * (GameConfig.SCREEN_HEIGHT / GameConfig.WINDOW_HEIGHT);
@@ -23,6 +23,6 @@ public class InputHandler {
             worldMouseY = scaledMouseY + cameraY;
         }
         
-        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, worldMouseX, worldMouseY);
+        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, worldMouseX, worldMouseY);
     }
 }

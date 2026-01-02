@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.environment.Foliage;
+import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,13 @@ public class GameObjectFactory {
         foliages.add(new Foliage(200, 900));
         foliages.add(new Foliage(1800, 600));
         return foliages;
+    }
+    
+    public static List<GameObject> createAmmoPowerUps() {
+        List<GameObject> powerUps = new ArrayList<>();
+        powerUps.add(new AmmoPowerUp(500, 500));
+        powerUps.add(new AmmoPowerUp(1400, 300));
+        return powerUps;
     }
     
     public static Player createPlayer() {

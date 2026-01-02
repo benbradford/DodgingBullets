@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
+import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +17,14 @@ public class GameRenderer {
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
     private Texture foliageTexture;
+    private Texture ammoFullTexture;
+    private Texture ammoEmptyTexture;
     private Map<String, Texture> explosionTextures;
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
                            Texture brokenTurretTexture, Texture vignetteTexture, Texture foliageTexture,
-                           Map<String, Texture> explosionTextures) {
+                           Map<String, Texture> explosionTextures, Texture ammoFullTexture, Texture ammoEmptyTexture) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -30,6 +33,8 @@ public class GameRenderer {
         this.brokenTurretTexture = brokenTurretTexture;
         this.vignetteTexture = vignetteTexture;
         this.foliageTexture = foliageTexture;
+        this.ammoFullTexture = ammoFullTexture;
+        this.ammoEmptyTexture = ammoEmptyTexture;
         this.explosionTextures = explosionTextures;
     }
     
@@ -51,9 +56,18 @@ public class GameRenderer {
         // Render all objects with depth sorting
         renderGameObjects(renderer, gameLoop, cameraX, cameraY);
         
-        // Render bullets
+        // Render bullets as rounded circles with white outline and colored center
         for (Bullet bullet : gameLoop.getBullets()) {
-            renderer.render(bulletTexture, bullet.getX() - 3 - cameraX, bullet.getY() - 3 - cameraY, 6, 6);
+            float bulletX = bullet.getX() - cameraX;
+            float bulletY = bullet.getY() - cameraY;
+            // White outline (larger circle)
+            renderer.renderCircle(bulletX, bulletY, 4, 1.0f, 1.0f, 1.0f, 1.0f);
+            // Colored center (smaller circle)
+            if (bullet.isSpecialBullet()) {
+                renderer.renderCircle(bulletX, bulletY, 2, 1.0f, 0.0f, 0.0f, 1.0f); // Red for special
+            } else {
+                renderer.renderCircle(bulletX, bulletY, 2, 0.0f, 0.0f, 0.0f, 1.0f); // Black for normal
+            }
         }
         
         // Render shell casings
@@ -80,7 +94,7 @@ public class GameRenderer {
         float red = 1.0f + flashIntensity * 0.5f;
         float green = 1.0f - flashIntensity * 0.3f;
         float blue = 1.0f - flashIntensity * 0.3f;
-        renderer.renderTextureWithColor(vignetteTexture, 0, 0, gameLoop.getScreenWidth(), gameLoop.getScreenHeight(), red, green, blue, 0.15f);
+        renderer.renderTextureWithColor(vignetteTexture, 0, 0, gameLoop.getScreenWidth(), gameLoop.getScreenHeight(), red, green, blue, 0.33f);
     }
     
     private void renderGameObjects(Renderer renderer, GameLoop gameLoop, float cameraX, float cameraY) {
@@ -91,6 +105,7 @@ public class GameRenderer {
         allObjects.add(player);
         allObjects.addAll(gameLoop.getGameObjects());
         allObjects.addAll(gameLoop.getFoliages());
+        allObjects.addAll(gameLoop.getAmmoPowerUps());
         
         // Sort all objects by Y position for depth (lower Y renders first/behind, higher Y renders last/on top)
         allObjects.sort((a, b) -> {
@@ -126,6 +141,10 @@ public class GameRenderer {
                     }
                 } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
                     renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
+                } else if (gameObj.getClass().getSimpleName().equals("AmmoPowerUp")) {
+                    AmmoPowerUp ammo = (AmmoPowerUp) gameObj;
+                    Texture texture = ammo.isCollected() ? ammoEmptyTexture : ammoFullTexture;
+                    renderer.render(texture, gameObj.getX() - 32 - cameraX, gameObj.getY() - 32 - cameraY, 64, 64);
                 }
             }
         }
@@ -155,28 +174,30 @@ public class GameRenderer {
         float ammoBarX = player.getX() - ammoBarWidth/2 - cameraX;
         float ammoBarY = player.getY() - 55 - cameraY;
         
-        float ammoPercent = player.getAmmo() / 10.0f;
+        boolean hasSpecial = player.hasSpecialBullets();
+        float maxAmmo = hasSpecial ? 100.0f : 10.0f;
+        float ammoPercent = player.getAmmo() / maxAmmo;
         
         renderer.renderRectOutline(ammoBarX, ammoBarY, ammoBarWidth, ammoBarHeight, 1.0f, 1.0f, 1.0f, 1.0f);
         
         float fillWidth = ammoBarWidth * ammoPercent;
         if (fillWidth > 0) {
-            renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, 0.0f, 0.5f, 1.0f, 1.0f);
+            if (hasSpecial) {
+                // Flashing red/blue for special bullets
+                long time = System.currentTimeMillis();
+                float flash = (float) Math.sin(time * 0.01) * 0.5f + 0.5f; // 0-1 oscillation
+                float red = 1.0f * flash;
+                float blue = 1.0f * (1.0f - flash);
+                renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, red, 0.0f, blue, 1.0f);
+            } else {
+                // Normal blue for regular ammo
+                renderer.renderRect(ammoBarX, ammoBarY, fillWidth, ammoBarHeight, 0.0f, 0.5f, 1.0f, 1.0f);
+            }
         }
     }
     
     private void renderTiledBackground(Renderer renderer, float cameraX, float cameraY, float mapWidth, float mapHeight) {
-        int startTileX = Math.max(0, (int)(cameraX / GameConfig.TILE_SIZE) - 1);
-        int startTileY = Math.max(0, (int)(cameraY / GameConfig.TILE_SIZE) - 1);
-        int endTileX = Math.min((int)(mapWidth / GameConfig.TILE_SIZE), startTileX + (int)(GameConfig.SCREEN_WIDTH / GameConfig.TILE_SIZE) + 3);
-        int endTileY = Math.min((int)(mapHeight / GameConfig.TILE_SIZE), startTileY + (int)(GameConfig.SCREEN_HEIGHT / GameConfig.TILE_SIZE) + 3);
-        
-        for (int x = startTileX; x < endTileX; x++) {
-            for (int y = startTileY; y < endTileY; y++) {
-                float worldX = x * GameConfig.TILE_SIZE;
-                float worldY = y * GameConfig.TILE_SIZE;
-                renderer.render(grassTexture, worldX - cameraX, worldY - cameraY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
-            }
-        }
+        // Render single large background texture covering entire map
+        renderer.render(grassTexture, -cameraX, -cameraY, mapWidth, mapHeight);
     }
 }

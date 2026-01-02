@@ -2,6 +2,7 @@ package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
+import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -13,8 +14,10 @@ public class GameLoop {
     private List<ShellCasing> shells = new ArrayList<>();
     private List<GameObject> gameObjects = new ArrayList<>();
     private List<GameObject> foliages = new ArrayList<>();
+    private List<GameObject> ammoPowerUps = new ArrayList<>();
     private List<Explosion> explosions = new ArrayList<>();
     private Vec2 camera = new Vec2(0, 0);
+    private long lastPlayerShootTime = 0;
     
     private CollisionSystem collisionSystem = new CollisionSystem();
     private InputHandler inputHandler = new InputHandler();
@@ -27,17 +30,19 @@ public class GameLoop {
         // Initialize game objects
         gameObjects = GameObjectFactory.createTurrets();
         foliages = GameObjectFactory.createFoliage();
+        ammoPowerUps = GameObjectFactory.createAmmoPowerUps();
         
         // Set up collision objects for player
         List<GameObject> allCollidables = new ArrayList<>();
         allCollidables.addAll(gameObjects);
         allCollidables.addAll(foliages);
+        allCollidables.addAll(ammoPowerUps);
         player.setCollidableObjects(allCollidables);
     }
     
-    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, double mouseX, double mouseY) {
+    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, double mouseX, double mouseY) {
         // Process input
-        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseX, mouseY);
+        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, mouseX, mouseY);
         
         // Update player
         player.update(input.keys, input.jumpPressed, input.jumpHeld);
@@ -51,6 +56,9 @@ public class GameLoop {
         
         // Handle shooting
         handleShooting(input);
+        
+        // Check ammo power-up collection
+        checkAmmoPowerUpCollection();
         
         // Update and check collisions
         updateBullets();
@@ -77,7 +85,19 @@ public class GameLoop {
     
     private void handleShooting(InputState input) {
         // Handle player shooting
-        if (input.mousePressed && player.canShoot()) {
+        boolean canRapidFire = player.hasSpecialBullets();
+        boolean shouldShoot = canRapidFire ? input.mouseHeld : input.mousePressed;
+        
+        if (shouldShoot && player.canShoot()) {
+            // Check rapid fire timing for special bullets
+            if (canRapidFire) {
+                long now = System.currentTimeMillis();
+                if (now - lastPlayerShootTime < 200) { // 5 shots per second = 200ms interval
+                    return;
+                }
+                lastPlayerShootTime = now;
+            }
+            
             double deltaX = input.worldMouseX - player.getX();
             double deltaY = input.worldMouseY - player.getY();
             double angle = Math.atan2(deltaY, deltaX);
@@ -87,7 +107,7 @@ public class GameLoop {
             
             player.shoot();
             float[] gunPos = player.getGunBarrelPosition();
-            bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true));
+            bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));
             shells.add(new ShellCasing(player.getX(), player.getY()));
         }
         
@@ -125,6 +145,18 @@ public class GameLoop {
         collisionSystem.checkBulletCollisions(bullets, player, gameObjects, foliages, explosions);
     }
     
+    private void checkAmmoPowerUpCollection() {
+        for (GameObject powerUp : ammoPowerUps) {
+            if (powerUp instanceof AmmoPowerUp) {
+                AmmoPowerUp ammo = (AmmoPowerUp) powerUp;
+                if (!ammo.isCollected() && ammo.checkSpriteCollision(player.getX(), player.getY(), 12, 12)) {
+                    ammo.collect();
+                    player.collectAmmoPowerUp();
+                }
+            }
+        }
+    }
+    
     private void updateExplosions() {
         Iterator<Explosion> explosionIter = explosions.iterator();
         while (explosionIter.hasNext()) {
@@ -156,6 +188,7 @@ public class GameLoop {
     public List<ShellCasing> getShells() { return shells; }
     public List<GameObject> getGameObjects() { return gameObjects; }
     public List<GameObject> getFoliages() { return foliages; }
+    public List<GameObject> getAmmoPowerUps() { return ammoPowerUps; }
     public List<Explosion> getExplosions() { return explosions; }
     public float getCameraX() { return camera.x(); }
     public float getCameraY() { return camera.y(); }
