@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
+import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import java.util.ArrayList;
@@ -23,12 +24,14 @@ public class GameRenderer {
     private Texture ammoEmptyTexture;
     private Texture grenadeTexture;
     private Map<String, Texture> explosionTextures;
+    private Map<String, Texture> bearTextures = new HashMap<>();
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
                            Texture brokenTurretTexture, Texture vignetteTexture, Map<String, Texture> foliageTextures,
                            Map<String, Texture> explosionTextures, 
-                           Texture ammoFullTexture, Texture ammoEmptyTexture, Texture grenadeTexture) {
+                           Texture ammoFullTexture, Texture ammoEmptyTexture, Texture grenadeTexture,
+                           Map<String, Texture> bearTextures) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -41,6 +44,7 @@ public class GameRenderer {
         this.ammoEmptyTexture = ammoEmptyTexture;
         this.grenadeTexture = grenadeTexture;
         this.explosionTextures = explosionTextures;
+        this.bearTextures = bearTextures;
     }
     
     public void render(Renderer renderer, GameLoop gameLoop) {
@@ -139,7 +143,10 @@ public class GameRenderer {
                     p.getX() - 32 - cameraX, p.getY() - 32 + p.getJumpOffset() - cameraY, 64, 64);
             } else if (obj instanceof GameObject) {
                 GameObject gameObj = (GameObject) obj;
-                if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
+                if (gameObj instanceof Bear) {
+                    Bear bear = (Bear) gameObj;
+                    renderBear(renderer, bear, cameraX, cameraY);
+                } else if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
                     Trackable trackable = (Trackable) gameObj;
                     Damageable damageable = (Damageable) gameObj;
                     Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
@@ -217,5 +224,62 @@ public class GameRenderer {
     private void renderTiledBackground(Renderer renderer, float cameraX, float cameraY, float mapWidth, float mapHeight) {
         // Render single large background texture covering entire map
         renderer.render(grassTexture, -cameraX, -cameraY, mapWidth, mapHeight);
+    }
+    
+    private void renderBear(Renderer renderer, Bear bear, float cameraX, float cameraY) {
+        if (!bear.isActive()) return;
+        
+        // Get the appropriate texture based on bear state and direction
+        String textureKey = getBearTextureKey(bear);
+        Texture bearTexture = bearTextures.get(textureKey);
+        
+        if (bearTexture != null) {
+            float alpha = bear.getFadeAlpha();
+            float rotation = bear.getRotationAngle();
+            
+            if (bear.getState() == Bear.BearState.DYING) {
+                // Render with fade effect and rotation
+                renderer.renderRotatedWithAlpha(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64, rotation, alpha);
+            } else {
+                // Normal rendering
+                renderer.render(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64);
+            }
+        }
+    }
+    
+    private String getBearTextureKey(Bear bear) {
+        Bear.BearState state = bear.getState();
+        Direction direction = bear.getFacingDirection();
+        int frame = bear.getCurrentFrame();
+        
+        String directionStr = getDirectionString(direction);
+        
+        switch (state) {
+            case IDLE:
+                return "bear_idle_" + directionStr + "_" + String.format("%03d", frame);
+            case WAKING_UP:
+                return "bear_wakingUp_" + directionStr + "_" + String.format("%03d", frame);
+            case RUNNING:
+                return "bear_running_" + directionStr + "_" + String.format("%03d", frame);
+            case HIT:
+            case DYING:
+                return "bear_hit_" + directionStr + "_" + String.format("%03d", frame);
+            default:
+                return "bear_idle_east_000";
+        }
+    }
+    
+    private String getDirectionString(Direction direction) {
+        switch (direction) {
+            case UP: return "north";
+            case DOWN: return "south";
+            case LEFT: return "west";
+            case RIGHT: return "east";
+            case UP_LEFT: return "north-west";
+            case UP_RIGHT: return "north-east";
+            case DOWN_LEFT: return "south-west";
+            case DOWN_RIGHT: return "south-east";
+            default: return "east";
+        }
     }
 }

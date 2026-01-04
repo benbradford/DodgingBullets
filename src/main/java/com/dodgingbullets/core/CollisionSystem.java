@@ -1,6 +1,7 @@
 package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
+import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,16 +60,17 @@ public class CollisionSystem {
     
     private boolean checkGameObjectCollision(Bullet bullet, List<GameObject> gameObjects, List<Explosion> explosions) {
         for (GameObject gameObject : gameObjects) {
-            if (gameObject instanceof Positionable && 
+            if (gameObject instanceof Positionable && gameObject instanceof Damageable &&
+                !((Damageable) gameObject).isDestroyed() &&
                 ((Positionable) gameObject).isInSpriteHitbox(bullet.getX(), bullet.getY())) {
-                if (gameObject instanceof Damageable) {
-                    Damageable damageable = (Damageable) gameObject;
-                    boolean wasDestroyed = damageable.isDestroyed();
-                    damageable.takeDamage(GameConfig.PLAYER_DAMAGE);
-                    
-                    if (!wasDestroyed && damageable.isDestroyed()) {
-                        explosions.add(new Explosion(gameObject.getX(), gameObject.getY()));
-                    }
+                
+                Damageable damageable = (Damageable) gameObject;
+                boolean wasDestroyed = damageable.isDestroyed();
+                damageable.takeDamage(GameConfig.PLAYER_DAMAGE);
+                
+                // Only create explosions for non-Bear objects
+                if (!wasDestroyed && damageable.isDestroyed() && !(gameObject instanceof Bear)) {
+                    explosions.add(new Explosion(gameObject.getX(), gameObject.getY()));
                 }
                 return true;
             }

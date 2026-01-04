@@ -1,6 +1,7 @@
 package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
+import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
@@ -33,12 +34,22 @@ public class GameLoop {
         foliages = GameObjectFactory.createFoliage();
         ammoPowerUps = GameObjectFactory.createAmmoPowerUps();
         
+        // Add bears to game objects
+        gameObjects.addAll(GameObjectFactory.createBears());
+        
         // Set up collision objects for player
         List<GameObject> allCollidables = new ArrayList<>();
         allCollidables.addAll(gameObjects);
         allCollidables.addAll(foliages);
         allCollidables.addAll(ammoPowerUps);
         player.setCollidableObjects(allCollidables);
+        
+        // Set up collision objects for bears
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Bear) {
+                ((Bear) gameObject).setCollidableObjects(allCollidables);
+            }
+        }
     }
     
     public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, boolean grenadePressed, double mouseX, double mouseY) {
@@ -64,6 +75,9 @@ public class GameLoop {
         // Check ammo power-up collection
         checkAmmoPowerUpCollection();
         
+        // Check bear attacks
+        checkBearAttacks();
+        
         // Update and check collisions
         updateBullets();
         updateGrenades();
@@ -82,6 +96,7 @@ public class GameLoop {
     
     private void updateTurrets() {
         for (GameObject gameObject : gameObjects) {
+            gameObject.update(GameConfig.DELTA_TIME);
             if (gameObject instanceof Trackable) {
                 ((Trackable) gameObject).update(player.getX(), player.getY());
             }
@@ -157,6 +172,17 @@ public class GameLoop {
                 if (!ammo.isCollected() && ammo.checkSpriteCollision(player.getX(), player.getY(), 12, 12)) {
                     ammo.collect();
                     player.collectAmmoPowerUp();
+                }
+            }
+        }
+    }
+    
+    private void checkBearAttacks() {
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Bear) {
+                Bear bear = (Bear) gameObject;
+                if (bear.isAttackingPlayer()) {
+                    player.takeDamage(20); // 20 damage per second
                 }
             }
         }

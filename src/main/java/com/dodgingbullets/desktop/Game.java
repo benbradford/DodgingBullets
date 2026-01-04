@@ -36,6 +36,7 @@ public class Game {
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private Map<String, Texture> explosionTextures = new HashMap<>();
     private Map<String, Texture> foliageTextures = new HashMap<>();
+    private Map<String, Texture> bearTextures = new HashMap<>();
     private boolean[] keys = new boolean[5]; // W, A, S, D, R
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -98,7 +99,7 @@ public class Game {
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
-                                 explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+                                 explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, bearTextures);
         
         // Initialize state machine
         stateManager = new StateManager();
@@ -110,7 +111,7 @@ public class Game {
             grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
             gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                    shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
-                                   explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+                                   explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, bearTextures);
         };
         
         // Create states - we'll set the circular reference after
@@ -206,6 +207,44 @@ public class Game {
         foliageTextures.put("foliage", foliageTexture);
         foliageTextures.put("palm_trees", palmTreesTexture);
         foliageTextures.put("palm_trees_group", palmTreesGroupTexture);
+        
+        // Load bear textures
+        loadBearTextures();
+    }
+    
+    private void loadBearTextures() {
+        // Load idle animations
+        for (int i = 0; i <= 9; i++) {
+            bearTextures.put("bear_idle_east_" + String.format("%03d", i), 
+                renderer.loadTexture("assets/bear/animations/idle/east/frame_" + String.format("%03d", i) + ".png"));
+            bearTextures.put("bear_idle_west_" + String.format("%03d", i), 
+                renderer.loadTexture("assets/bear/animations/idle/west/frame_" + String.format("%03d", i) + ".png"));
+        }
+        
+        // Load waking up animations
+        for (int i = 0; i <= 6; i++) {
+            bearTextures.put("bear_wakingUp_east_" + String.format("%03d", i), 
+                renderer.loadTexture("assets/bear/animations/wakingUp/east/frame_" + String.format("%03d", i) + ".png"));
+            bearTextures.put("bear_wakingUp_west_" + String.format("%03d", i), 
+                renderer.loadTexture("assets/bear/animations/wakingUp/west/frame_" + String.format("%03d", i) + ".png"));
+        }
+        
+        // Load running animations for all 8 directions
+        String[] directions = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+        for (String dir : directions) {
+            for (int i = 0; i <= 3; i++) {
+                bearTextures.put("bear_running_" + dir + "_" + String.format("%03d", i), 
+                    renderer.loadTexture("assets/bear/animations/running/" + dir + "/frame_" + String.format("%03d", i) + ".png"));
+            }
+        }
+        
+        // Load hit animations for all 8 directions
+        for (String dir : directions) {
+            for (int i = 0; i <= 11; i++) {
+                bearTextures.put("bear_hit_" + dir + "_" + String.format("%03d", i), 
+                    renderer.loadTexture("assets/bear/animations/hit/" + dir + "/frame_" + String.format("%03d", i) + ".png"));
+            }
+        }
     }
     
     private void loop() {

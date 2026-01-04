@@ -2,6 +2,7 @@ package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
+import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
@@ -17,6 +18,7 @@ public class MapLoader {
         public List<GameObject> turrets = new ArrayList<>();
         public List<GameObject> foliage = new ArrayList<>();
         public List<GameObject> ammoPowerUps = new ArrayList<>();
+        public List<GameObject> bears = new ArrayList<>();
         public Player player;
     }
     
@@ -57,7 +59,7 @@ public class MapLoader {
         }
         
         // Simple JSON parsing without external libraries
-        String[] sections = json.split("\"turrets\":|\"foliage\":|\"ammoPowerUps\":|\"player\":");
+        String[] sections = json.split("\"turrets\":|\"foliage\":|\"ammoPowerUps\":|\"bears\":|\"player\":");
         
         for (int i = 1; i < sections.length; i++) {
             String section = sections[i].trim();
@@ -65,6 +67,7 @@ public class MapLoader {
                 if (i == 1) parseTurrets(section, mapData);
                 else if (i == 2) parseFoliage(section, mapData);
                 else if (i == 3) parseAmmoPowerUps(section, mapData);
+                else if (i == 4) parseBears(section, mapData);
             } else if (section.startsWith("{")) {
                 parsePlayer(section, mapData);
             }
@@ -110,6 +113,33 @@ public class MapLoader {
                 int y = extractInt(obj, "\"y\":");
                 mapData.ammoPowerUps.add(new AmmoPowerUp(x, y));
             }
+        }
+    }
+    
+    private static void parseBears(String section, MapData mapData) {
+        String[] objects = section.split("\\{");
+        for (String obj : objects) {
+            if (obj.contains("\"x\":")) {
+                int x = extractInt(obj, "\"x\":");
+                int y = extractInt(obj, "\"y\":");
+                String facingStr = obj.contains("\"facing\":") ? extractString(obj, "\"facing\":") : "east";
+                Direction facing = parseFacingDirection(facingStr);
+                mapData.bears.add(new Bear(x, y, facing));
+            }
+        }
+    }
+    
+    private static Direction parseFacingDirection(String facingStr) {
+        switch (facingStr.toLowerCase()) {
+            case "north": return Direction.UP;
+            case "south": return Direction.DOWN;
+            case "east": return Direction.RIGHT;
+            case "west": return Direction.LEFT;
+            case "north-east": return Direction.UP_RIGHT;
+            case "north-west": return Direction.UP_LEFT;
+            case "south-east": return Direction.DOWN_RIGHT;
+            case "south-west": return Direction.DOWN_LEFT;
+            default: return Direction.RIGHT; // Default to east
         }
     }
     
@@ -167,6 +197,11 @@ public class MapLoader {
         // Hardcoded ammo power-ups
         mapData.ammoPowerUps.add(new AmmoPowerUp(500, 500));
         mapData.ammoPowerUps.add(new AmmoPowerUp(1400, 300));
+        
+        // Hardcoded bears
+        mapData.bears.add(new Bear(1000, 1000, Direction.LEFT));
+        mapData.bears.add(new Bear(1800, 300, Direction.LEFT));
+        mapData.bears.add(new Bear(400, 800, Direction.RIGHT));
         
         // Hardcoded player
         mapData.player = new Player(320, 180);

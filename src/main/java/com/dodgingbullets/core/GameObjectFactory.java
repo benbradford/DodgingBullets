@@ -2,6 +2,7 @@ package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
+import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
@@ -26,6 +27,10 @@ public class GameObjectFactory {
     
     public static List<GameObject> createAmmoPowerUps() {
         return new ArrayList<>(mapData.ammoPowerUps);
+    }
+    
+    public static List<GameObject> createBears() {
+        return new ArrayList<>(mapData.bears);
     }
     
     public static Player createPlayer() {
