@@ -15,6 +15,8 @@ import static org.lwjgl.opengl.GL13.*;
 
 public class DesktopRenderer implements Renderer {
     
+    private FontRenderer fontRenderer;
+    
     @Override
     public void initialize() {
         GL.createCapabilities();
@@ -31,6 +33,10 @@ public class DesktopRenderer implements Renderer {
         glLoadIdentity();
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        
+        // Initialize font renderer
+        fontRenderer = new FontRenderer();
+        fontRenderer.initialize();
     }
     
     @Override
@@ -144,7 +150,9 @@ public class DesktopRenderer implements Renderer {
     
     @Override
     public void cleanup() {
-        // Cleanup handled in main
+        if (fontRenderer != null) {
+            fontRenderer.cleanup();
+        }
     }
     
     @Override
@@ -191,72 +199,6 @@ public class DesktopRenderer implements Renderer {
     
     @Override
     public void renderText(String text, float x, float y, float r, float g, float b) {
-        glDisable(GL_TEXTURE_2D);
-        glColor3f(r, g, b);
-        
-        // Use simple point-based rendering for clear, readable text
-        glPointSize(2.0f);
-        
-        for (char c : text.toCharArray()) {
-            renderChar(c, x, y);
-            x += 12; // Move to next character position
-        }
-        
-        glPointSize(1.0f);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glEnable(GL_TEXTURE_2D);
-    }
-    
-    private void renderChar(char c, float x, float y) {
-        glBegin(GL_POINTS);
-        
-        // Simple dot-matrix style characters
-        switch (c) {
-            case 'L':
-                // Vertical line
-                for (int i = 0; i < 8; i++) glVertex2f(x, y + i);
-                // Horizontal line
-                for (int i = 0; i < 6; i++) glVertex2f(x + i, y);
-                break;
-            case 'E':
-                // Vertical line
-                for (int i = 0; i < 8; i++) glVertex2f(x, y + i);
-                // Top line
-                for (int i = 0; i < 5; i++) glVertex2f(x + i, y + 7);
-                // Middle line
-                for (int i = 0; i < 4; i++) glVertex2f(x + i, y + 4);
-                // Bottom line
-                for (int i = 0; i < 5; i++) glVertex2f(x + i, y);
-                break;
-            case 'V':
-                // Left diagonal
-                glVertex2f(x, y + 7); glVertex2f(x + 1, y + 6); glVertex2f(x + 2, y + 5);
-                glVertex2f(x + 3, y + 4); glVertex2f(x + 4, y + 3); glVertex2f(x + 5, y + 2);
-                glVertex2f(x + 6, y + 1); glVertex2f(x + 7, y);
-                // Right diagonal
-                glVertex2f(x + 10, y + 7); glVertex2f(x + 9, y + 6); glVertex2f(x + 8, y + 5);
-                glVertex2f(x + 7, y + 4); glVertex2f(x + 6, y + 3); glVertex2f(x + 5, y + 2);
-                glVertex2f(x + 4, y + 1); glVertex2f(x + 3, y);
-                break;
-            case '1':
-                // Vertical line
-                for (int i = 0; i < 8; i++) glVertex2f(x + 3, y + i);
-                // Top diagonal
-                glVertex2f(x + 2, y + 6); glVertex2f(x + 1, y + 5);
-                // Bottom line
-                for (int i = 1; i < 6; i++) glVertex2f(x + i, y);
-                break;
-            case '2':
-                // Top curve
-                for (int i = 1; i < 5; i++) glVertex2f(x + i, y + 7);
-                glVertex2f(x + 5, y + 6); glVertex2f(x + 5, y + 5);
-                // Middle diagonal
-                glVertex2f(x + 4, y + 4); glVertex2f(x + 3, y + 3); glVertex2f(x + 2, y + 2); glVertex2f(x + 1, y + 1);
-                // Bottom line
-                for (int i = 0; i < 6; i++) glVertex2f(x + i, y);
-                break;
-        }
-        
-        glEnd();
+        fontRenderer.renderText(text, x, y, r, g, b);
     }
 }

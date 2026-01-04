@@ -233,6 +233,104 @@ src/main/java/com/dodgingbullets/
 - **Special Mechanics**: Implement temporary power-ups that modify player behavior (special bullets, rapid fire)
 - **Visual Feedback**: Use flashing UI elements to indicate special states
 
+## Coordinate Systems & Screen Space
+
+### Window vs Screen Coordinates
+The game uses two different coordinate systems that must be properly handled:
+
+#### Window Coordinates (GLFW Input)
+- **Size**: 640x360 pixels (GameConfig.WINDOW_WIDTH/HEIGHT)
+- **Source**: Raw mouse input from GLFW callbacks
+- **Y-Origin**: Top-left corner (Y=0 at top, increases downward)
+- **Usage**: Direct GLFW mouse position callbacks
+
+#### Screen Coordinates (Game Logic)
+- **Size**: 704x396 pixels (GameConfig.SCREEN_WIDTH/HEIGHT) 
+- **Source**: Scaled from window coordinates for game logic
+- **Y-Origin**: Bottom-left corner (Y=0 at bottom, increases upward)
+- **Usage**: All game object positions, collision detection, rendering
+
+### Coordinate Transformation Rules
+
+#### Mouse Input Scaling
+Mouse coordinates MUST be scaled from window space to screen space:
+
+```java
+// ✅ CORRECT: Scale mouse coordinates
+glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
+    mouseX = xpos * (GameConfig.SCREEN_WIDTH / GameConfig.WINDOW_WIDTH);
+    mouseY = (360 - ypos) * (GameConfig.SCREEN_HEIGHT / GameConfig.WINDOW_HEIGHT);
+});
+
+// ❌ WRONG: Direct window coordinates
+mouseX = xpos;
+mouseY = 360 - ypos;
+```
+
+#### Y-Coordinate Flipping
+OpenGL uses bottom-left origin, but GLFW uses top-left:
+
+```java
+// Window Y (top-left origin) → Screen Y (bottom-left origin)
+screenY = WINDOW_HEIGHT - windowY;
+
+// Then scale to screen space
+screenY = screenY * (SCREEN_HEIGHT / WINDOW_HEIGHT);
+```
+
+### UI Positioning Guidelines
+
+#### Button Positioning
+When positioning UI elements, account for OpenGL's bottom-left origin:
+
+```java
+// Position buttons from top of screen downward
+float startY = 270; // Start near top of 396px screen
+for (int i = 0; i < buttons.size(); i++) {
+    float buttonY = startY - i * 60; // Subtract to go downward
+    // Level 1: Y=270-310, Level 2: Y=210-250, Level 3: Y=150-190
+}
+```
+
+#### Common Y-Position Issues
+- **Buttons Off-Screen**: If startY + buttonHeight > SCREEN_HEIGHT, buttons render above visible area
+- **Click Detection Mismatch**: Mouse coordinates must use same coordinate system as button positions
+- **Visual vs Logical Position**: What appears "at the top" visually is at higher Y values in OpenGL
+
+### Debugging Coordinate Issues
+
+#### Add Debug Logging
+```java
+System.out.println("Click at: " + mouseX + ", " + mouseY);
+System.out.println("Button at Y: " + buttonY + " to " + (buttonY + buttonHeight));
+```
+
+#### Check Coordinate Ranges
+- **Screen bounds**: X: 0-704, Y: 0-396
+- **Window bounds**: X: 0-640, Y: 0-360
+- **Mouse scaling**: Should multiply by ~1.1 for both axes
+
+#### Validation Checklist
+1. ✅ Mouse coordinates scaled from window to screen space
+2. ✅ Y-coordinates flipped (GLFW top-left → OpenGL bottom-left)
+3. ✅ UI elements positioned within screen bounds (0-396 for Y)
+4. ✅ Click detection uses same coordinate system as rendering
+5. ✅ Button positions account for OpenGL bottom-left origin
+
+### Development Lessons Learned
+
+#### Coordinate System Debugging
+- **Symptom**: Clicking on visible buttons doesn't register
+- **Cause**: Mouse coordinates in window space, game logic in screen space
+- **Solution**: Scale mouse input by width/height ratios
+- **Prevention**: Always use GameConfig constants for coordinate transformations
+
+#### Y-Axis Orientation
+- **OpenGL Convention**: Y=0 at bottom, increases upward
+- **GLFW Convention**: Y=0 at top, increases downward  
+- **UI Positioning**: Higher Y values appear "higher" on screen in OpenGL
+- **Button Layout**: Subtract spacing to position buttons "downward" visually
+
 ## Image Composition with ImageMagick
 
 ### Creating Overlapping Sprite Groups

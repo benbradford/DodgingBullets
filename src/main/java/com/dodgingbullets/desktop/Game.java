@@ -161,8 +161,8 @@ public class Game {
         });
         
         glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
-            mouseX = xpos;
-            mouseY = 360 - ypos; // Flip Y coordinate
+            mouseX = xpos * (GameConfig.SCREEN_WIDTH / GameConfig.WINDOW_WIDTH);
+            mouseY = (360 - ypos) * (GameConfig.SCREEN_HEIGHT / GameConfig.WINDOW_HEIGHT);
         });
     }
     
@@ -236,10 +236,10 @@ public class Game {
         float buttonWidth = 200;
         float buttonHeight = 40;
         float startX = (GameConfig.SCREEN_WIDTH - buttonWidth) / 2;
-        float startY = 100;
+        float startY = 270;
         
         for (int i = 0; i < levels.size(); i++) {
-            float buttonY = startY + i * 60;
+            float buttonY = startY - i * 60;
             
             // Render button background
             renderer.renderRect(startX, buttonY, buttonWidth, buttonHeight, 0.3f, 0.3f, 0.3f, 0.8f);
