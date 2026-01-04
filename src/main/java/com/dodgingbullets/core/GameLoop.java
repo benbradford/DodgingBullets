@@ -97,7 +97,7 @@ public class GameLoop {
             // Check rapid fire timing for special bullets
             if (canRapidFire) {
                 long now = System.currentTimeMillis();
-                if (now - lastPlayerShootTime < 200) { // 5 shots per second = 200ms interval
+                if (now - lastPlayerShootTime < 100) { // 10 shots per second = 100ms interval
                     return;
                 }
                 lastPlayerShootTime = now;

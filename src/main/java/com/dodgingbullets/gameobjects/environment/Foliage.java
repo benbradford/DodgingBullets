@@ -3,10 +3,36 @@ package com.dodgingbullets.gameobjects.environment;
 import com.dodgingbullets.gameobjects.*;
 
 public class Foliage extends GameObject implements Renderable, Collidable {
-    private static final float SPRITE_SIZE = 50f;
+    private final float spriteWidth;
+    private final float spriteHeight;
+    private final float spriteCollisionWidth;
+    private final float spriteCollisionHeight;
+    private final float movementCollisionWidth;
+    private final float movementCollisionHeight;
+    private final String textureKey;
 
-    public Foliage(float x, float y) {
+    public Foliage(float x, float y, float width, float height, float spriteCollisionWidth, float spriteCollisionHeight, 
+                   float movementCollisionWidth, float movementCollisionHeight, String textureKey) {
         super(x, y);
+        this.spriteWidth = width;
+        this.spriteHeight = height;
+        this.spriteCollisionWidth = spriteCollisionWidth;
+        this.spriteCollisionHeight = spriteCollisionHeight;
+        this.movementCollisionWidth = movementCollisionWidth;
+        this.movementCollisionHeight = movementCollisionHeight;
+        this.textureKey = textureKey;
+    }
+    
+    public String getTextureKey() {
+        return textureKey;
+    }
+    
+    public float getSpriteWidth() {
+        return spriteWidth;
+    }
+    
+    public float getSpriteHeight() {
+        return spriteHeight;
     }
     
     @Override
@@ -26,15 +52,17 @@ public class Foliage extends GameObject implements Renderable, Collidable {
     
     @Override
     public boolean checkSpriteCollision(float x, float y, float width, float height) {
-        // Full sprite hitbox (same pattern as turret)
-        return x < position.x() + SPRITE_SIZE/2 && x + width > position.x() - SPRITE_SIZE/2 && 
-               y < position.y() + SPRITE_SIZE/2 && y + height > position.y() - SPRITE_SIZE/2;
+        // Sprite collision is offset from bottom of sprite
+        float bottomY = position.y() - spriteHeight/2;
+        return x < position.x() + spriteCollisionWidth/2 && x + width > position.x() - spriteCollisionWidth/2 && 
+               y < bottomY + spriteCollisionHeight && y + height > bottomY;
     }
     
     @Override
     public boolean checkMovementCollision(float x, float y, float width, float height) {
-        // Bottom half for movement blocking (same pattern as turret: y < this.y)
-        return x < position.x() + SPRITE_SIZE/2 && x + width > position.x() - SPRITE_SIZE/2 && 
-               y < position.y() && y + height > position.y() - SPRITE_SIZE/2;
+        // Movement collision is offset from bottom of sprite
+        float bottomY = position.y() - spriteHeight/2;
+        return x < position.x() + movementCollisionWidth/2 && x + width > position.x() - movementCollisionWidth/2 && 
+               y < bottomY + movementCollisionHeight && y + height > bottomY;
     }
 }

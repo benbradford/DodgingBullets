@@ -27,11 +27,14 @@ public class Game {
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
     private Texture foliageTexture;
+    private Texture palmTreesTexture;
+    private Texture palmTreesGroupTexture;
     private Texture ammoFullTexture;
     private Texture ammoEmptyTexture;
     private Texture grenadeTexture;
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private Map<String, Texture> explosionTextures = new HashMap<>();
+    private Map<String, Texture> foliageTextures = new HashMap<>();
     private boolean[] keys = new boolean[4]; // W, A, S, D
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -92,8 +95,8 @@ public class Game {
         
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
-                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTexture, explosionTextures,
-                                 ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+                                 shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
+                                 explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
         
         gameLoop = new GameLoop();
         gameLoop.initialize(renderer);
@@ -147,6 +150,8 @@ public class Game {
         brokenTurretTexture = renderer.loadTexture("src/main/resources/textures/broken_turret.png");
         vignetteTexture = renderer.loadTexture("src/main/resources/textures/vignette.png");
         foliageTexture = renderer.loadTexture("src/main/resources/textures/foliage.png");
+        palmTreesTexture = renderer.loadTexture("assets/palm_trees01.png");
+        palmTreesGroupTexture = renderer.loadTexture("assets/palm_trees_group.png");
         ammoFullTexture = renderer.loadTexture("assets/ammocratefull.png");
         ammoEmptyTexture = renderer.loadTexture("assets/ammocrateempty.png");
         grenadeTexture = renderer.loadTexture("assets/grenade2_alpha.png");
@@ -171,6 +176,11 @@ public class Game {
         explosionTextures.put("explosionanim_1_102.png", renderer.loadTexture("assets/explosionanim_1_102.png"));
         explosionTextures.put("explosionanim_1_119.png", renderer.loadTexture("assets/explosionanim_1_119.png"));
         explosionTextures.put("explosionanim_1_136.png", renderer.loadTexture("assets/explosionanim_1_136.png"));
+        
+        // Load foliage textures
+        foliageTextures.put("foliage", foliageTexture);
+        foliageTextures.put("palm_trees", palmTreesTexture);
+        foliageTextures.put("palm_trees_group", palmTreesGroupTexture);
     }
     
     private void loop() {

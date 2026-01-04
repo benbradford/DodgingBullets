@@ -232,3 +232,65 @@ src/main/java/com/dodgingbullets/
 - **State Management**: Track collected state and change textures accordingly (full → empty crate)
 - **Special Mechanics**: Implement temporary power-ups that modify player behavior (special bullets, rapid fire)
 - **Visual Feedback**: Use flashing UI elements to indicate special states
+
+## Image Composition with ImageMagick
+
+### Creating Overlapping Sprite Groups
+
+When combining multiple sprites into a single image while preserving color and allowing overlap:
+
+#### ✅ CORRECT Method (Preserves Color)
+Use single-command composition with `convert` and `canvas:transparent`:
+
+```bash
+# Two sprites with 400px overlap
+convert -size 1282x798 canvas:transparent \
+  sprite.png -geometry +0+0 -composite \
+  sprite.png -geometry +441+0 -composite \
+  output.png
+
+# Five sprites horizontally with 400px overlap
+convert -size 2605x798 canvas:transparent \
+  sprite.png -geometry +0+0 -composite \
+  sprite.png -geometry +441+0 -composite \
+  sprite.png -geometry +882+0 -composite \
+  sprite.png -geometry +1323+0 -composite \
+  sprite.png -geometry +1764+0 -composite \
+  output.png
+
+# 2x5 grid with 400px horizontal, 600px vertical overlap
+convert -size 2605x996 canvas:transparent \
+  sprite.png -geometry +0+0 -composite \
+  sprite.png -geometry +441+0 -composite \
+  sprite.png -geometry +882+0 -composite \
+  sprite.png -geometry +1323+0 -composite \
+  sprite.png -geometry +1764+0 -composite \
+  sprite.png -geometry +0+198 -composite \
+  sprite.png -geometry +441+198 -composite \
+  sprite.png -geometry +882+198 -composite \
+  sprite.png -geometry +1323+198 -composite \
+  sprite.png -geometry +1764+198 -composite \
+  output.png
+```
+
+#### ❌ AVOID (Causes Grayscale/Color Loss)
+- Multiple separate composite operations
+- Using `magick` instead of `convert` for complex compositions
+- Using `-compose over` in separate commands
+- Canvas creation with `xc:none` or `xc:transparent` in separate steps
+
+#### Key Principles
+1. **Single Command**: Do entire composition in one `convert` command
+2. **Canvas First**: Start with `canvas:transparent` of final size
+3. **Calculate Positions**: For N-pixel overlap with sprite width W: spacing = W - N
+4. **Preserve Format**: Original RGBA sprites will maintain color in output
+5. **Size Calculation**: 
+   - Width: `(sprite_width * count) - (overlap * (count-1))`
+   - Height: `(sprite_height * rows) - (vertical_overlap * (rows-1))`
+
+#### Example Calculations
+- Sprite: 841x798 pixels
+- 400px horizontal overlap: spacing = 841 - 400 = 441px
+- 600px vertical overlap: spacing = 798 - 600 = 198px
+- 5 sprites width: (841 × 5) - (400 × 4) = 4205 - 1600 = 2605px
+- 2 rows height: (798 × 2) - (600 × 1) = 1596 - 600 = 996px

@@ -38,13 +38,15 @@ public class Bullet {
         this.creationTime = System.currentTimeMillis();
         
         // Add spread for special bullets
-        double finalAngle = angle;
-        if (isSpecialBullet) {
-            finalAngle += (Math.random() - 0.5) * 0.3; // ±0.15 radian spread
-        }
-        
+
         // Set velocity based on angle using Vec2.fromAngle
-        this.velocity = Vec2.fromAngle(finalAngle, SPEED);
+        this.velocity = Vec2.fromAngle(addSpread(angle), SPEED);
+    }
+
+    @SuppressWarnings("java:S2245") // Suppressing because Math.random is sufficient for game mechanics
+    private double addSpread(double angle) {
+        double spread = (isSpecialBullet) ? (Math.random() - 0.5) * 0.3 : 0;
+        return angle + spread;
     }
     
     public void update() {

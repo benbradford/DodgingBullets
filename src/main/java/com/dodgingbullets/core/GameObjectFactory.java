@@ -20,11 +20,23 @@ public class GameObjectFactory {
     
     public static List<GameObject> createFoliage() {
         List<GameObject> foliages = new ArrayList<>();
-        foliages.add(new Foliage(400, 300));
-        foliages.add(new Foliage(1000, 200));
-        foliages.add(new Foliage(1500, 800));
-        foliages.add(new Foliage(200, 900));
-        foliages.add(new Foliage(1800, 600));
+        // Regular foliage
+        foliages.add(new Foliage(400, 300, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        foliages.add(new Foliage(1000, 200, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        foliages.add(new Foliage(1500, 800, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        foliages.add(new Foliage(200, 900, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        foliages.add(new Foliage(1800, 600, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        
+        // Palm trees (sprite collision for bullets, smaller movement collision for player)
+        foliages.add(new Foliage(600, 400, 120f, 120f, 40f, 45f, 50f, 30f, "palm_trees"));
+        foliages.add(new Foliage(1200, 700, 120f, 120f, 40f, 45f, 50f, 30f, "palm_trees"));
+        foliages.add(new Foliage(300, 600, 120f, 120f, 40f, 45f, 50f, 30f, "palm_trees"));
+        
+        // Palm tree groups (large forest areas) - 2605x996 scaled to ~500x190
+        foliages.add(new Foliage(1800, 1000, 500f, 190f, 380f, 120f, 430f, 120f, "palm_trees_group"));
+        foliages.add(new Foliage(800, 1200, 500f, 190f, 380f, 120f, 430f, 120f, "palm_trees_group"));
+
+        
         return foliages;
     }
     

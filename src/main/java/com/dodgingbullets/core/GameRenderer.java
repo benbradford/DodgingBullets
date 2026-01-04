@@ -4,7 +4,9 @@ import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
+import com.dodgingbullets.gameobjects.environment.Foliage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +18,7 @@ public class GameRenderer {
     private Texture shellTexture;
     private Texture brokenTurretTexture;
     private Texture vignetteTexture;
-    private Texture foliageTexture;
+    private Map<String, Texture> foliageTextures = new HashMap<>();
     private Texture ammoFullTexture;
     private Texture ammoEmptyTexture;
     private Texture grenadeTexture;
@@ -24,9 +26,9 @@ public class GameRenderer {
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
-                           Texture brokenTurretTexture, Texture vignetteTexture, Texture foliageTexture,
-                           Map<String, Texture> explosionTextures, Texture ammoFullTexture, Texture ammoEmptyTexture,
-                           Texture grenadeTexture) {
+                           Texture brokenTurretTexture, Texture vignetteTexture, Map<String, Texture> foliageTextures,
+                           Map<String, Texture> explosionTextures, 
+                           Texture ammoFullTexture, Texture ammoEmptyTexture, Texture grenadeTexture) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -34,7 +36,7 @@ public class GameRenderer {
         this.shellTexture = shellTexture;
         this.brokenTurretTexture = brokenTurretTexture;
         this.vignetteTexture = vignetteTexture;
-        this.foliageTexture = foliageTexture;
+        this.foliageTextures = foliageTextures;
         this.ammoFullTexture = ammoFullTexture;
         this.ammoEmptyTexture = ammoEmptyTexture;
         this.grenadeTexture = grenadeTexture;
@@ -84,7 +86,7 @@ public class GameRenderer {
             float grenadeY = grenade.getY() - cameraY;
             float scale = grenade.getScale();
             float size = 24 * scale; // 1.5x bigger (16 * 1.5 = 24)
-            renderer.renderRotated(grenadeTexture, grenadeX - size/2, grenadeY - size/2, size, size, grenade.getRotation());
+            renderer.renderRotatedWithAlpha(grenadeTexture, grenadeX - size/2, grenadeY - size/2, size, size, grenade.getRotation(), 1.0f);
         }
         
         // Render explosions on top of everything
@@ -93,7 +95,7 @@ public class GameRenderer {
             if (textureName != null && explosionTextures.containsKey(textureName)) {
                 Texture explosionTexture = explosionTextures.get(textureName);
                 float size = explosion.getSize();
-                renderer.render(explosionTexture, explosion.getX() - size/2 - cameraX, explosion.getY() - size/2 - cameraY, size, size);
+                renderer.renderTextureWithColor(explosionTexture, explosion.getX() - size/2 - cameraX, explosion.getY() - size/2 - cameraY, size, size, 1.0f, 1.0f, 1.0f, 1.0f);
             }
         }
         
@@ -152,7 +154,11 @@ public class GameRenderer {
                         renderer.renderTextureWithColor(turretTexture, gameObj.getX() - 64 - cameraX, gameObj.getY() - 64 - cameraY, 128, 128, 1.0f, 1.0f, 1.0f, 1.0f);
                     }
                 } else if (gameObj.getClass().getSimpleName().equals("Foliage")) {
-                    renderer.render(foliageTexture, gameObj.getX() - 25 - cameraX, gameObj.getY() - 25 - cameraY, 50, 50);
+                    Foliage foliage = (Foliage) gameObj;
+                    Texture texture = foliageTextures.get(foliage.getTextureKey());
+                    float width = foliage.getSpriteWidth();
+                    float height = foliage.getSpriteHeight();
+                    renderer.render(texture, gameObj.getX() - width/2 - cameraX, gameObj.getY() - height/2 - cameraY, width, height);
                 } else if (gameObj.getClass().getSimpleName().equals("AmmoPowerUp")) {
                     AmmoPowerUp ammo = (AmmoPowerUp) gameObj;
                     Texture texture = ammo.isCollected() ? ammoEmptyTexture : ammoFullTexture;
