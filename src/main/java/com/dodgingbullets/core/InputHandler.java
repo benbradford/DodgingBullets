@@ -11,6 +11,7 @@ public class InputHandler {
     
     public InputState processInput(boolean[] keys, boolean jumpPressed, boolean jumpHeld, 
                                  boolean mousePressed, boolean mouseHeld, boolean grenadePressed,
+                                 boolean spacePressed, boolean spaceHeld,
                                  double mouseX, double mouseY) {
         double worldMouseX = 0;
         double worldMouseY = 0;
@@ -24,7 +25,7 @@ public class InputHandler {
             worldMouseY = scaledMouseY + cameraY;
         }
         
-        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, false,
+        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, spacePressed, spaceHeld, false,
                              mouseX, mouseY, worldMouseX, worldMouseY);
     }
 }

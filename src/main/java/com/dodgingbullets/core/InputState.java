@@ -7,6 +7,8 @@ public class InputState {
     public final boolean mousePressed;
     public final boolean mouseHeld;
     public final boolean grenadePressed;
+    public final boolean spacePressed;
+    public final boolean spaceHeld;
     public final boolean running;
     public final boolean qPressed;
     public final double mouseX;
@@ -23,6 +25,8 @@ public class InputState {
         this.mousePressed = mousePressed;
         this.mouseHeld = mouseHeld;
         this.grenadePressed = grenadePressed;
+        this.spacePressed = false;
+        this.spaceHeld = false;
         this.running = keys.length > 4 ? keys[4] : false;
         this.qPressed = false; // Will be set separately
         this.mouseX = mouseX;
@@ -32,7 +36,8 @@ public class InputState {
     }
     
     public InputState(boolean[] keys, boolean jumpPressed, boolean jumpHeld, 
-                     boolean mousePressed, boolean mouseHeld, boolean grenadePressed, boolean qPressed,
+                     boolean mousePressed, boolean mouseHeld, boolean grenadePressed,
+                     boolean spacePressed, boolean spaceHeld, boolean qPressed,
                      double mouseX, double mouseY, double worldMouseX, double worldMouseY) {
         this.keys = keys.clone();
         this.jumpPressed = jumpPressed;
@@ -40,6 +45,8 @@ public class InputState {
         this.mousePressed = mousePressed;
         this.mouseHeld = mouseHeld;
         this.grenadePressed = grenadePressed;
+        this.spacePressed = spacePressed;
+        this.spaceHeld = spaceHeld;
         this.running = keys.length > 4 ? keys[4] : false;
         this.qPressed = qPressed;
         this.mouseX = mouseX;

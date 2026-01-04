@@ -40,6 +40,8 @@ public class Game {
     private boolean[] keys = new boolean[5]; // W, A, S, D, R
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
+    private boolean spacePressed = false;
+    private boolean spaceHeld = false;
     private boolean mousePressed = false;
     private boolean mouseHeld = false;
     private boolean grenadePressed = false;
@@ -144,6 +146,11 @@ public class Game {
                     jumpPressed = (action == GLFW_PRESS);
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
                     if (action == GLFW_RELEASE) jumpHeld = false;
+                    break;
+                case GLFW_KEY_SPACE:
+                    spacePressed = (action == GLFW_PRESS);
+                    spaceHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
+                    if (action == GLFW_RELEASE) spaceHeld = false;
                     break;
                 case GLFW_KEY_G:
                     grenadePressed = (action == GLFW_PRESS);
@@ -254,7 +261,7 @@ public class Game {
             double worldMouseY = mouseY + (gameLoop != null ? gameLoop.getCamera().y() : 0) - GameConfig.SCREEN_HEIGHT / 2.0;
             
             InputState inputState = new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, 
-                                                  grenadePressed, qPressed, mouseX, mouseY, worldMouseX, worldMouseY);
+                                                  grenadePressed, spacePressed, spaceHeld, qPressed, mouseX, mouseY, worldMouseX, worldMouseY);
             
             // Update state machine
             stateManager.update(0.016f, inputState);

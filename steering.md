@@ -568,3 +568,725 @@ convert -size 2605x996 canvas:transparent \
 - 600px vertical overlap: spacing = 798 - 600 = 198px
 - 5 sprites width: (841 × 5) - (400 × 4) = 4205 - 1600 = 2605px
 - 2 rows height: (798 × 2) - (600 × 1) = 1596 - 600 = 996px
+
+## Bear Enemy System - Advanced Multi-State AI
+
+The Bear class demonstrates a sophisticated enemy implementation with complex state management, 8-directional animations, and intelligent pathfinding. This serves as a template for creating advanced enemies with multiple behavioral states.
+
+### Bear Architecture Overview
+
+#### Core Components
+- **State Machine**: 5 distinct states (IDLE, WAKING_UP, RUNNING, HIT, DYING)
+- **8-Directional Movement**: Full directional awareness and animation
+- **Smart Pathfinding**: Obstacle avoidance with alternative route finding
+- **Complex Animation System**: State-specific frame counts and timing
+- **Physics Integration**: Knockback, gravity, and collision detection
+
+#### Asset Structure
+```
+assets/bear/
+├── animations/
+│   ├── idle/
+│   │   ├── east/          # 11 frames (000-010)
+│   │   └── west/          # 11 frames (000-010)
+│   ├── wakingUp/
+│   │   ├── east/          # 8 frames (000-007)
+│   │   └── west/          # 8 frames (000-007)
+│   ├── running/
+│   │   ├── north/         # 4 frames (000-003)
+│   │   ├── north-east/    # 4 frames (000-003)
+│   │   ├── east/          # 4 frames (000-003)
+│   │   ├── south-east/    # 4 frames (000-003)
+│   │   ├── south/         # 4 frames (000-003)
+│   │   ├── south-west/    # 4 frames (000-003)
+│   │   ├── west/          # 4 frames (000-003)
+│   │   └── north-west/    # 4 frames (000-003)
+│   ├── hit/
+│   │   ├── north/         # 12 frames (000-011)
+│   │   ├── north-east/    # 12 frames (000-011)
+│   │   ├── east/          # 12 frames (000-011)
+│   │   ├── south-east/    # 12 frames (000-011)
+│   │   ├── south/         # 12 frames (000-011)
+│   │   ├── south-west/    # 12 frames (000-011)
+│   │   ├── west/          # 12 frames (000-011)
+│   │   └── north-west/    # 12 frames (000-011)
+│   ├── attack-left/
+│   │   └── west/          # 8 frames (000-007)
+│   └── attack-right/
+│       └── east/          # 8 frames (000-007)
+└── rotations/             # Static directional sprites
+    ├── north.png
+    ├── north-east.png
+    ├── east.png
+    ├── south-east.png
+    ├── south.png
+    ├── south-west.png
+    ├── west.png
+    └── north-west.png
+```
+
+### State Machine Implementation
+
+#### State Definitions
+```java
+public enum BearState {
+    IDLE,       // Sleeping, waiting for player detection
+    WAKING_UP,  // Transition animation when player detected
+    RUNNING,    // Active pursuit of player
+    HIT,        // Damage reaction animation
+    DYING       // Death animation with physics effects
+}
+```
+
+#### State Transitions
+- **IDLE → WAKING_UP**: Player enters sight range (250px) with line of sight
+- **WAKING_UP → RUNNING**: After 0.9s wakeup animation completes
+- **RUNNING → HIT**: When taking damage (if health > 0)
+- **RUNNING → DYING**: When taking fatal damage (health ≤ 0)
+- **HIT → RUNNING**: After 0.825s hit animation (if alive)
+- **HIT → DYING**: After hit animation (if dead)
+
+#### State-Specific Behavior
+
+**IDLE State:**
+- Ping-pong animation through 6 frames (0-5)
+- Continuous player detection within sight range
+- No movement or collision
+
+**WAKING_UP State:**
+- Linear animation through 6 frames once
+- Fixed duration: 0.9 seconds
+- Holds on final frame until transition
+
+**RUNNING State:**
+- Ping-pong animation through 4 frames (0-3)
+- Active pathfinding and movement
+- Player tracking and attack detection
+- Smart obstacle avoidance
+
+**HIT State:**
+- Linear animation through 11 frames once
+- Faster frame rate (0.075s vs 0.15s)
+- Knockback physics applied
+- Duration: 0.825 seconds
+
+**DYING State:**
+- Animation to frame 7, then fade over 2 seconds
+- Complex physics: rotation, gravity, arc movement
+- Gradual alpha fade after animation completes
+
+### Animation System
+
+#### Frame Management
+```java
+// State-specific frame counts
+IDLE: 6 frames (ping-pong 0-5)
+WAKING_UP: 6 frames (linear 0-5, hold on 5)
+RUNNING: 4 frames (ping-pong 0-3)  
+HIT: 11 frames (linear 0-11)
+DYING: 8 frames (linear 0-7, hold on 7)
+```
+
+#### Timing Constants
+```java
+private static final float FRAME_DURATION = 0.15f;        // Normal speed
+private static final float HIT_FRAME_DURATION = 0.075f;   // 2x faster for hit
+private static final float WAKEUP_DURATION = 0.9f;        // 6 frames * 0.15s
+private static final float HIT_DURATION = 0.825f;         // 11 frames * 0.075s
+private static final float FADE_DURATION = 2.0f;          // Death fade time
+```
+
+#### Texture Loading Pattern
+```java
+// Texture naming convention: bear_{state}_{direction}_{frameNumber}
+// Examples:
+bearTextures.put("bear_idle_east_000", texture);
+bearTextures.put("bear_running_north_002", texture);
+bearTextures.put("bear_hit_south-west_007", texture);
+```
+
+### Movement and Pathfinding
+
+#### Smart Pathfinding Algorithm
+1. **Direct Path Check**: Test straight line to player
+2. **Axis Separation**: If blocked, test X and Y movement separately
+3. **Alternative Routes**: Choose unblocked axis for movement
+4. **Perpendicular Fallback**: Try cardinal directions if both axes blocked
+5. **Direction Commitment**: Stick to chosen direction for minimum time
+
+#### Movement Constants
+```java
+private static final float SIGHT_RANGE = 250f;           // Detection range
+private static final float ATTACK_RANGE = 30f;           // Damage range
+private static final float MOVE_SPEED = 150f;            // Pixels per second
+private static final float RANDOM_MOVE_INTERVAL = 1.0f;  // Path recalculation
+private static final float MIN_DIRECTION_COMMIT_TIME = 0.3f; // Direction stability
+```
+
+#### Collision Detection
+- **Sprite Hitbox**: 64x64 pixels (full sprite)
+- **Movement Hitbox**: 64x32 pixels (bottom half)
+- **Line of Sight**: Ray casting with 8-pixel steps
+
+### Physics System
+
+#### Knockback Mechanics
+```java
+// Normal hit knockback
+Vec2 knockbackDirection = position.subtract(playerPosition);
+knockbackVelocity = normalizedKnockback.multiply(KNOCKBACK_FORCE);
+
+// Death knockback (3x stronger)
+knockbackVelocity = normalizedKnockback.multiply(KNOCKBACK_FORCE * 3f);
+```
+
+#### Death Physics
+```java
+// Rotation based on facing direction
+rotationSpeed = (facingDirection == Direction.RIGHT) ? 60f : -60f;
+
+// Arc trajectory
+verticalVelocity = INITIAL_JUMP_VELOCITY; // 150f
+verticalVelocity -= GRAVITY * deltaTime;   // 300f gravity
+
+// Friction effects
+knockbackVelocity = knockbackVelocity.multiply(FRICTION); // 0.85f
+rotationSpeed *= ROTATION_FRICTION; // 0.95f
+```
+
+### Damage System
+
+#### Time-Based Damage
+```java
+// Applied in GameLoop.checkBearAttacks()
+if (bear.isAttackingPlayer()) {
+    float damageThisFrame = DAMAGE_PER_SECOND * GameConfig.DELTA_TIME;
+    player.takeDamage((int)damageThisFrame); // 20 DPS
+}
+```
+
+#### Damage States
+- **Normal Hit**: Enter HIT state, apply knockback
+- **Fatal Hit**: Skip HIT state, go directly to DYING
+- **Attack Range**: 30 pixels from bear center
+
+### Creating Similar Enemies
+
+#### 1. Define Enemy State Enum
+```java
+public enum WolfState {
+    SLEEPING, STALKING, POUNCING, HOWLING, RETREATING
+}
+```
+
+#### 2. Set Up Asset Structure
+```
+assets/wolf/
+├── animations/
+│   ├── sleeping/
+│   │   └── any/           # Omnidirectional
+│   ├── stalking/
+│   │   ├── north/         # 8 directions
+│   │   ├── north-east/
+│   │   └── ...
+│   └── pouncing/
+│       ├── north/
+│       └── ...
+└── rotations/             # Static sprites
+```
+
+#### 3. Implement State Machine
+```java
+private void updateState(float deltaTime) {
+    switch (state) {
+        case SLEEPING:
+            // Detection logic
+            break;
+        case STALKING:
+            // Stealth movement
+            break;
+        case POUNCING:
+            // Attack animation
+            break;
+    }
+}
+```
+
+#### 4. Configure Animation System
+```java
+// State-specific frame counts and timing
+private static final int SLEEPING_FRAMES = 4;
+private static final int STALKING_FRAMES = 6;
+private static final int POUNCING_FRAMES = 8;
+private static final float STALK_FRAME_DURATION = 0.2f;
+private static final float POUNCE_FRAME_DURATION = 0.1f;
+```
+
+#### 5. Implement Movement Behavior
+```java
+private void updateMovement(float deltaTime) {
+    switch (state) {
+        case STALKING:
+            // Slow, careful movement
+            moveTowardsPlayer(deltaTime, STALK_SPEED);
+            break;
+        case POUNCING:
+            // Fast, direct attack
+            lungeAtPlayer(deltaTime, POUNCE_SPEED);
+            break;
+    }
+}
+```
+
+#### 6. Add Texture Loading
+```java
+// In Game.loadTextures()
+for (String state : Arrays.asList("sleeping", "stalking", "pouncing")) {
+    for (String direction : getDirectionsForState(state)) {
+        int frameCount = getFrameCountForState(state);
+        for (int i = 0; i < frameCount; i++) {
+            String key = String.format("wolf_%s_%s_%03d", state, direction, i);
+            wolfTextures.put(key, renderer.loadTexture(
+                String.format("assets/wolf/animations/%s/%s/%03d.png", 
+                             state, direction, i)));
+        }
+    }
+}
+```
+
+### Advanced Features
+
+#### Multi-Directional Animation Support
+- **8-Direction System**: Full directional awareness
+- **State-Specific Directions**: Some states may use fewer directions
+- **Fallback Directions**: Use closest available direction if exact match missing
+
+#### Intelligent Pathfinding
+- **Obstacle Avoidance**: Dynamic route calculation
+- **Player Prediction**: Anticipate player movement
+- **Group Coordination**: Multiple enemies can coordinate (future feature)
+
+#### Physics Integration
+- **Knockback Vectors**: Direction-based force application
+- **Gravity Effects**: Realistic arc trajectories
+- **Collision Response**: Proper collision handling during physics
+
+#### Performance Optimization
+- **State-Based Updates**: Only update relevant systems per state
+- **Animation Caching**: Efficient texture lookup
+- **Collision Culling**: Skip unnecessary collision checks
+
+### Best Practices for Enemy Creation
+
+1. **Start Simple**: Begin with 2-3 states, add complexity gradually
+2. **Asset Organization**: Use consistent naming conventions
+3. **State Transitions**: Keep transition logic clear and predictable
+4. **Animation Timing**: Use constants for easy tweaking
+5. **Physics Consistency**: Apply same physics rules across all enemies
+6. **Performance**: Profile complex enemies, optimize as needed
+7. **Debugging**: Add state visualization for development
+8. **Modularity**: Design for easy parameter adjustment
+
+### Common Patterns
+
+#### Detection Systems
+```java
+// Range-based detection
+float distance = position.distance(playerPosition);
+if (distance <= DETECTION_RANGE && hasLineOfSight()) {
+    triggerAlert();
+}
+
+// Angle-based detection (cone vision)
+Vec2 toPlayer = playerPosition.subtract(position);
+float angleToPlayer = Math.atan2(toPlayer.y(), toPlayer.x());
+float angleDiff = Math.abs(angleToPlayer - facingAngle);
+if (angleDiff <= VISION_CONE_ANGLE) {
+    detectPlayer();
+}
+```
+
+#### Attack Patterns
+```java
+// Melee attack (proximity-based)
+if (distanceToPlayer <= ATTACK_RANGE) {
+    dealDamageOverTime();
+}
+
+// Ranged attack (projectile-based)
+if (canSeePlayer() && attackCooldownReady()) {
+    fireProjectile(calculateLeadTarget());
+}
+
+// Area attack (explosion-based)
+if (shouldExplode()) {
+    createExplosion(position, EXPLOSION_RADIUS);
+}
+```
+
+#### Movement Behaviors
+```java
+// Pursuit (direct chase)
+Vec2 direction = playerPosition.subtract(position).normalize();
+velocity = direction.multiply(CHASE_SPEED);
+
+// Patrol (predefined path)
+if (reachedWaypoint()) {
+    currentWaypoint = getNextWaypoint();
+}
+moveTowards(currentWaypoint);
+
+// Flee (escape behavior)
+Vec2 fleeDirection = position.subtract(playerPosition).normalize();
+velocity = fleeDirection.multiply(FLEE_SPEED);
+```
+
+The Bear enemy system provides a comprehensive template for creating sophisticated AI enemies with complex behaviors, smooth animations, and realistic physics interactions.
+
+## Auto-Aim System
+
+The auto-aim system provides intelligent targeting assistance for the player, automatically aiming at the closest enemy within range when using spacebar shooting. This system integrates seamlessly with the existing shooting mechanics while providing tactical advantages.
+
+### Auto-Aim Architecture
+
+#### Input System Integration
+- **Spacebar**: Auto-aim shooting (separate from J key jumping)
+- **Mouse**: Manual aiming (unchanged)
+- **Dual Mode Support**: Normal bullets (single shot) vs Special bullets (rapid fire)
+
+#### Core Components
+```java
+// Input handling chain
+Game.java (GLFW callbacks) → InputHandler → InputState → GameLoop → handleShooting()
+
+// Key input variables
+private boolean spacePressed = false;  // Single press detection
+private boolean spaceHeld = false;     // Continuous hold detection
+```
+
+### Auto-Aim Algorithm
+
+#### Target Selection Process
+1. **Scan All Enemies**: Iterate through all GameObjects with Trackable + Damageable interfaces
+2. **Range Filtering**: Only consider enemies within 320 pixel range (same as turret sight range)
+3. **Distance Calculation**: Use Vec2.distance() for accurate measurement
+4. **Closest Selection**: Choose enemy with minimum distance to player
+5. **Fallback Behavior**: If no enemies in range, shoot in player's current facing direction
+
+#### Implementation
+```java
+private void handleShooting(InputState input) {
+    boolean canRapidFire = player.hasSpecialBullets();
+    boolean shouldAutoAim = canRapidFire ? input.spaceHeld : input.spacePressed;
+    
+    if (shouldAutoAim && player.canShoot()) {
+        // Cooldown management
+        long now = System.currentTimeMillis();
+        if (canRapidFire) {
+            if (now - lastPlayerShootTime < 100) return; // 10 shots/sec
+        } else {
+            if (now - lastPlayerShootTime < 200) return; // Prevent multi-shot
+        }
+        lastPlayerShootTime = now;
+        
+        // Target acquisition
+        GameObject closestEnemy = null;
+        float closestDistance = Float.MAX_VALUE;
+        
+        for (GameObject gameObject : gameObjects) {
+            if (gameObject instanceof Trackable && gameObject instanceof Damageable) {
+                Damageable damageable = (Damageable) gameObject;
+                
+                if (!damageable.isDestroyed()) {
+                    float distance = new Vec2(gameObject.getX(), gameObject.getY())
+                        .distance(new Vec2(player.getX(), player.getY()));
+                    if (distance <= 320 && distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = gameObject;
+                    }
+                }
+            }
+        }
+        
+        // Angle calculation
+        double angle;
+        Direction shootDirection;
+        
+        if (closestEnemy != null) {
+            // Aim at enemy
+            double deltaX = closestEnemy.getX() - player.getX();
+            double deltaY = closestEnemy.getY() - player.getY();
+            angle = Math.atan2(deltaY, deltaX);
+            shootDirection = Player.calculateDirectionFromAngle(angle);
+        } else {
+            // Fallback to facing direction
+            shootDirection = player.getCurrentDirection();
+            angle = getAngleFromDirection(shootDirection);
+        }
+        
+        // Execute shot
+        player.setShootingDirection(shootDirection);
+        player.shoot();
+        float[] gunPos = player.getGunBarrelPosition();
+        bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));
+        shells.add(new ShellCasing(player.getX(), player.getY()));
+    }
+}
+```
+
+### Direction-to-Angle Conversion
+
+#### Helper Method for Fallback Shooting
+```java
+private double getAngleFromDirection(Direction direction) {
+    switch (direction) {
+        case UP: return Math.PI / 2;           // 90 degrees
+        case UP_RIGHT: return Math.PI / 4;     // 45 degrees
+        case RIGHT: return 0;                  // 0 degrees
+        case DOWN_RIGHT: return -Math.PI / 4;  // -45 degrees
+        case DOWN: return -Math.PI / 2;        // -90 degrees
+        case DOWN_LEFT: return -3 * Math.PI / 4; // -135 degrees
+        case LEFT: return Math.PI;             // 180 degrees
+        case UP_LEFT: return 3 * Math.PI / 4;  // 135 degrees
+        default: return 0;
+    }
+}
+```
+
+### Cooldown Management
+
+#### Preventing Multiple Shots
+- **Normal Bullets**: 200ms cooldown prevents multiple shots on single spacebar press
+- **Special Bullets**: 100ms cooldown allows 10 shots per second rapid fire
+- **Shared Timing**: Uses same `lastPlayerShootTime` as mouse shooting for consistency
+
+#### Rate Limiting Logic
+```java
+// Different timing for different bullet types
+if (canRapidFire) {
+    if (now - lastPlayerShootTime < 100) return; // Rapid fire
+} else {
+    if (now - lastPlayerShootTime < 200) return; // Single shot protection
+}
+```
+
+### Auto-Aim vs Manual Aiming
+
+#### Coexistence Design
+- **Auto-aim (Spacebar)**: Intelligent targeting with fallback
+- **Manual aim (Mouse)**: Precise directional control
+- **Independent Systems**: Both can be used interchangeably
+- **Shared Resources**: Same ammo, cooldown, and bullet creation
+
+#### Usage Patterns
+- **Close Combat**: Auto-aim for quick enemy engagement
+- **Precision Shots**: Mouse for specific targeting
+- **Rapid Fire**: Hold spacebar with special bullets for sustained auto-targeting
+
+## Line of Sight System
+
+The line of sight system determines whether enemies can detect and engage the player, and whether the player's auto-aim can target enemies. Multiple implementations exist for different enemy types and use cases.
+
+### Line of Sight Implementations
+
+#### 1. Simple Range-Based (GunTurret)
+```java
+@Override
+public boolean canSeePlayer(float playerX, float playerY) {
+    return position.distance(new Vec2(playerX, playerY)) <= MAX_SIGHT; // 320 pixels
+}
+```
+- **Use Case**: Simple enemies that don't need obstacle awareness
+- **Performance**: Very fast, single distance calculation
+- **Behavior**: Ignores walls and obstacles
+
+#### 2. Directional Vision Cone (GunTurret)
+```java
+@Override
+public boolean canSeePlayerInCurrentDirection(float playerX, float playerY) {
+    Vec2 playerPos = new Vec2(playerX, playerY);
+    Vec2 delta = playerPos.subtract(position);
+    double angle = delta.angle();
+    double degrees = Math.toDegrees(angle);
+    if (degrees < 0) degrees += 360;
+    
+    switch (facingDirection) {
+        case RIGHT: return degrees >= 337.5 || degrees < 22.5;      // 45° cone
+        case UP_RIGHT: return degrees >= 22.5 && degrees < 67.5;
+        case UP: return degrees >= 67.5 && degrees < 112.5;
+        case UP_LEFT: return degrees >= 112.5 && degrees < 157.5;
+        case LEFT: return degrees >= 157.5 && degrees < 202.5;
+        case DOWN_LEFT: return degrees >= 202.5 && degrees < 247.5;
+        case DOWN: return degrees >= 247.5 && degrees < 292.5;
+        case DOWN_RIGHT: return degrees >= 292.5 && degrees < 337.5;
+        default: return false;
+    }
+}
+```
+- **Use Case**: Directional enemies like turrets with limited field of view
+- **Vision Cone**: 45-degree field of view per direction
+- **Behavior**: Only detects player within facing direction
+
+#### 3. Ray Casting with Obstacles (Bear)
+```java
+private boolean hasLineOfSight() {
+    if (collidableObjects == null) return true;
+    
+    // Cast a ray from bear to player
+    Vec2 direction = playerPosition.subtract(position);
+    float distance = direction.distance(new Vec2(0, 0));
+    
+    if (distance == 0) return true;
+    
+    Vec2 normalizedDirection = direction.multiply(1.0f / distance);
+    
+    // Step along the ray and check for collisions
+    float stepSize = 8.0f; // Check every 8 pixels
+    int steps = (int) (distance / stepSize);
+    
+    for (int i = 1; i < steps; i++) {
+        Vec2 rayPoint = position.add(normalizedDirection.multiply(i * stepSize));
+        
+        // Check if this point collides with any blocking object
+        for (GameObject obj : collidableObjects) {
+            if (obj != this && obj instanceof Collidable && 
+                ((Collidable) obj).checkMovementCollision(rayPoint.x() - 1, rayPoint.y() - 1, 2, 2)) {
+                return false; // Line of sight blocked
+            }
+        }
+    }
+    
+    return true; // Clear line of sight
+}
+```
+- **Use Case**: Advanced enemies that respect obstacles and terrain
+- **Ray Casting**: Steps along line from enemy to player
+- **Obstacle Detection**: Checks collision with all Collidable objects
+- **Performance**: More expensive but realistic
+
+### Line of Sight Parameters
+
+#### Vision Range Constants
+```java
+// Different ranges for different enemy types
+private static final float SIGHT_RANGE = 250f;    // Bear detection range
+private static final float MAX_SIGHT = 320f;      // Turret sight range
+private static final float ATTACK_RANGE = 30f;    // Bear attack range
+```
+
+#### Ray Casting Configuration
+```java
+private static final float STEP_SIZE = 8.0f;      // Ray casting precision
+// Smaller step size = more accurate but slower
+// Larger step size = faster but may miss thin obstacles
+```
+
+#### Vision Cone Angles
+```java
+// 8-directional vision cones (45 degrees each)
+RIGHT: 337.5° - 22.5°     // East
+UP_RIGHT: 22.5° - 67.5°   // Northeast  
+UP: 67.5° - 112.5°        // North
+UP_LEFT: 112.5° - 157.5°  // Northwest
+LEFT: 157.5° - 202.5°     // West
+DOWN_LEFT: 202.5° - 247.5° // Southwest
+DOWN: 247.5° - 292.5°     // South
+DOWN_RIGHT: 292.5° - 337.5° // Southeast
+```
+
+### Angle Calculation System
+
+#### Vec2.angle() Method
+```java
+// Calculates angle from vector components
+double angle = Math.atan2(deltaY, deltaX);
+double degrees = Math.toDegrees(angle);
+if (degrees < 0) degrees += 360; // Normalize to 0-360 range
+```
+
+#### Direction Mapping
+- **0°**: East (RIGHT)
+- **45°**: Northeast (UP_RIGHT)
+- **90°**: North (UP)
+- **135°**: Northwest (UP_LEFT)
+- **180°**: West (LEFT)
+- **225°**: Southwest (DOWN_LEFT)
+- **270°**: South (DOWN)
+- **315°**: Southeast (DOWN_RIGHT)
+
+### Performance Considerations
+
+#### Optimization Strategies
+1. **Range Check First**: Always check distance before expensive operations
+2. **Early Exit**: Return false immediately when obstacle found
+3. **Step Size Tuning**: Balance accuracy vs performance
+4. **Collision Culling**: Only check relevant collidable objects
+5. **Update Frequency**: Don't recalculate every frame if not needed
+
+#### Performance Comparison
+```java
+// Performance ranking (fastest to slowest)
+1. Simple Range: O(1) - single distance calculation
+2. Directional Cone: O(1) - distance + angle calculation  
+3. Ray Casting: O(n*m) - n steps × m collidable objects
+```
+
+### Integration with Auto-Aim
+
+#### Simplified Auto-Aim Line of Sight
+The auto-aim system uses a simplified approach for performance:
+```java
+// Auto-aim uses distance-only for performance
+if (distance <= 320 && distance < closestDistance) {
+    closestDistance = distance;
+    closestEnemy = gameObject;
+}
+```
+
+#### Why Simplified?
+- **Performance**: Auto-aim runs every frame during shooting
+- **User Experience**: Players expect responsive targeting
+- **Game Balance**: Obstacles shouldn't completely disable auto-aim
+- **Consistency**: Matches turret sight range (320 pixels)
+
+### Implementing Custom Line of Sight
+
+#### Basic Template
+```java
+@Override
+public boolean canSeePlayer(float playerX, float playerY) {
+    // 1. Range check
+    float distance = position.distance(new Vec2(playerX, playerY));
+    if (distance > SIGHT_RANGE) return false;
+    
+    // 2. Additional checks (choose one or combine)
+    
+    // Option A: Simple (always true if in range)
+    return true;
+    
+    // Option B: Directional cone
+    return isPlayerInVisionCone(playerX, playerY);
+    
+    // Option C: Ray casting
+    return hasLineOfSightToPlayer(playerX, playerY);
+    
+    // Option D: Combined
+    return isPlayerInVisionCone(playerX, playerY) && hasLineOfSightToPlayer(playerX, playerY);
+}
+```
+
+#### Custom Vision Cone
+```java
+private boolean isPlayerInVisionCone(float playerX, float playerY) {
+    Vec2 toPlayer = new Vec2(playerX, playerY).subtract(position);
+    double angleToPlayer = Math.atan2(toPlayer.y(), toPlayer.x());
+    double facingAngle = getFacingAngleRadians();
+    
+    double angleDiff = Math.abs(angleToPlayer - facingAngle);
+    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff; // Handle wrap-around
+    
+    return angleDiff <= VISION_CONE_HALF_ANGLE; // e.g., Math.PI / 4 for 90° cone
+}
+```
+
+The line of sight system provides flexible detection mechanics that can be customized for different enemy types, from simple range-based detection to complex ray casting with obstacle awareness.

@@ -52,9 +52,9 @@ public class GameLoop {
         }
     }
     
-    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, boolean grenadePressed, double mouseX, double mouseY) {
+    public void update(boolean[] keys, boolean jumpPressed, boolean jumpHeld, boolean mousePressed, boolean mouseHeld, boolean grenadePressed, boolean spacePressed, boolean spaceHeld, double mouseX, double mouseY) {
         // Process input
-        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
+        InputState input = inputHandler.processInput(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, spacePressed, spaceHeld, mouseX, mouseY);
         
         // Update player
         player.update(input.keys, input.jumpPressed, input.jumpHeld);
@@ -104,8 +104,66 @@ public class GameLoop {
     }
     
     private void handleShooting(InputState input) {
-        // Handle player shooting
+        // Handle auto-aim shooting with spacebar
         boolean canRapidFire = player.hasSpecialBullets();
+        boolean shouldAutoAim = canRapidFire ? input.spaceHeld : input.spacePressed;
+        
+        if (shouldAutoAim && player.canShoot()) {
+            // Check timing for both rapid fire and normal bullets
+            long now = System.currentTimeMillis();
+            if (canRapidFire) {
+                if (now - lastPlayerShootTime < 100) { // 10 shots per second = 100ms interval
+                    return;
+                }
+            } else {
+                if (now - lastPlayerShootTime < 200) { // Prevent multiple shots on single press
+                    return;
+                }
+            }
+            lastPlayerShootTime = now;
+            
+            // Auto-aim logic: find closest enemy in range with line of sight
+            GameObject closestEnemy = null;
+            float closestDistance = Float.MAX_VALUE;
+            
+            for (GameObject gameObject : gameObjects) {
+                if (gameObject instanceof Trackable && gameObject instanceof Damageable) {
+                    Trackable trackable = (Trackable) gameObject;
+                    Damageable damageable = (Damageable) gameObject;
+                    
+                    if (!damageable.isDestroyed()) {
+                        float distance = new Vec2(gameObject.getX(), gameObject.getY()).distance(new Vec2(player.getX(), player.getY()));
+                        if (distance <= 320 && distance < closestDistance) { // Use same range as turrets
+                            closestDistance = distance;
+                            closestEnemy = gameObject;
+                        }
+                    }
+                }
+            }
+            
+            double angle;
+            Direction shootDirection;
+            
+            if (closestEnemy != null) {
+                // Aim at closest enemy
+                double deltaX = closestEnemy.getX() - player.getX();
+                double deltaY = closestEnemy.getY() - player.getY();
+                angle = Math.atan2(deltaY, deltaX);
+                shootDirection = Player.calculateDirectionFromAngle(angle);
+            } else {
+                // No enemy in range, shoot in facing direction
+                shootDirection = player.getCurrentDirection();
+                angle = getAngleFromDirection(shootDirection);
+            }
+            
+            player.setShootingDirection(shootDirection);
+            player.shoot();
+            float[] gunPos = player.getGunBarrelPosition();
+            bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));
+            shells.add(new ShellCasing(player.getX(), player.getY()));
+        }
+        
+        // Handle player shooting with mouse
         boolean shouldShoot = canRapidFire ? input.mouseHeld : input.mousePressed;
         
         if (shouldShoot && player.canShoot()) {
@@ -182,7 +240,9 @@ public class GameLoop {
             if (gameObject instanceof Bear) {
                 Bear bear = (Bear) gameObject;
                 if (bear.isAttackingPlayer()) {
-                    player.takeDamage(20); // 20 damage per second
+                    // Apply damage over time: 20 damage per second
+                    float damageThisFrame = 100 * GameConfig.DELTA_TIME;
+                    player.takeDamage((int)damageThisFrame);
                 }
             }
         }
@@ -253,6 +313,20 @@ public class GameLoop {
             if (shell.isExpired()) {
                 shellIter.remove();
             }
+        }
+    }
+    
+    private double getAngleFromDirection(Direction direction) {
+        switch (direction) {
+            case UP: return Math.PI / 2;
+            case UP_RIGHT: return Math.PI / 4;
+            case RIGHT: return 0;
+            case DOWN_RIGHT: return -Math.PI / 4;
+            case DOWN: return -Math.PI / 2;
+            case DOWN_LEFT: return -3 * Math.PI / 4;
+            case LEFT: return Math.PI;
+            case UP_LEFT: return 3 * Math.PI / 4;
+            default: return 0;
         }
     }
     

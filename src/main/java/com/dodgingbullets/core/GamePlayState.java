@@ -28,7 +28,8 @@ public class GamePlayState implements GameState {
         }
         
         gameLoop.update(inputState.keys, inputState.jumpPressed, inputState.jumpHeld, 
-                       inputState.mousePressed, inputState.mouseHeld, inputState.grenadePressed, 
+                       inputState.mousePressed, inputState.mouseHeld, inputState.grenadePressed,
+                       inputState.spacePressed, inputState.spaceHeld,
                        inputState.mouseX, inputState.mouseY);
     }
     

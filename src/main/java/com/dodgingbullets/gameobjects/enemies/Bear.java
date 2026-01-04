@@ -38,7 +38,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
     private float directionCommitTimer = 0.0f;
     
     // Constants
-    private static final float SIGHT_RANGE = 100f;
+    private static final float SIGHT_RANGE = 250f;
     private static final float ATTACK_RANGE = 30f;
     private static final float MOVE_SPEED = 150f;
     private static final float KNOCKBACK_FORCE = 200f;
