@@ -20,6 +20,8 @@ public class Game {
     private Renderer renderer;
     private GameLoop gameLoop;
     private GameRenderer gameRenderer;
+    private LevelSelectScreen levelSelectScreen;
+    private boolean inLevelSelect = true;
     private Texture grassTexture;
     private Texture shadowTexture;
     private Texture bulletTexture;
@@ -91,15 +93,14 @@ public class Game {
         renderer = new DesktopRenderer();
         renderer.initialize();
         
+        levelSelectScreen = new LevelSelectScreen();
+        
         loadTextures();
         
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                  explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
-        
-        gameLoop = new GameLoop();
-        gameLoop.initialize(renderer);
     }
     
     private void setupInputCallbacks() {
@@ -131,6 +132,28 @@ public class Game {
                 if (action == GLFW_PRESS) {
                     mousePressed = true;
                     mouseHeld = true;
+                    
+                    // Handle level select clicks
+                    if (inLevelSelect) {
+                        levelSelectScreen.handleClick(mouseX, mouseY);
+                        if (levelSelectScreen.isLevelSelected()) {
+                            // Initialize game with selected level
+                            GameObjectFactory.loadLevel(levelSelectScreen.getChosenLevel());
+                            
+                            // Load the background texture for this level
+                            String backgroundTexture = GameObjectFactory.getBackgroundTexture();
+                            grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
+                            
+                            // Update renderer with new background
+                            gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
+                                                     shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
+                                                     explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+                            
+                            gameLoop = new GameLoop();
+                            gameLoop.initialize(renderer);
+                            inLevelSelect = false;
+                        }
+                    }
                 } else if (action == GLFW_RELEASE) {
                     mouseHeld = false;
                 }
@@ -186,18 +209,50 @@ public class Game {
     
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
-            // Update game logic
-            gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
-            jumpPressed = false; // Reset jump press after processing
-            mousePressed = false; // Reset mouse press after processing
-            grenadePressed = false; // Reset grenade press after processing
-            
-            // Render everything
-            gameRenderer.render(renderer, gameLoop);
+            if (inLevelSelect) {
+                // Render level select screen
+                renderLevelSelect();
+            } else {
+                // Update game logic
+                gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
+                jumpPressed = false; // Reset jump press after processing
+                mousePressed = false; // Reset mouse press after processing
+                grenadePressed = false; // Reset grenade press after processing
+                
+                // Render everything
+                gameRenderer.render(renderer, gameLoop);
+            }
             
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
+    }
+    
+    private void renderLevelSelect() {
+        renderer.clear();
+        
+        // Render level buttons
+        List<String> levels = levelSelectScreen.getAvailableLevels();
+        float buttonWidth = 200;
+        float buttonHeight = 40;
+        float startX = (GameConfig.SCREEN_WIDTH - buttonWidth) / 2;
+        float startY = 100;
+        
+        for (int i = 0; i < levels.size(); i++) {
+            float buttonY = startY + i * 60;
+            
+            // Render button background
+            renderer.renderRect(startX, buttonY, buttonWidth, buttonHeight, 0.3f, 0.3f, 0.3f, 0.8f);
+            
+            // Render button outline
+            renderer.renderRectOutline(startX, buttonY, buttonWidth, buttonHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+            
+            // Render level text
+            String levelName = levels.get(i).replace(".json", "").toUpperCase();
+            renderer.renderText(levelName, startX + 10, buttonY + 15, 1.0f, 1.0f, 1.0f);
+        }
+        
+        renderer.present();
     }
     
     private void cleanup() {

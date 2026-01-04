@@ -1,0 +1,22 @@
+{
+  "backgroundTexture": "vibrant_random_grass.png",
+  "mapWidth": 800,
+  "mapHeight": 500,
+  "turrets": [
+    {"x": 600, "y": 250},
+    {"x": 200, "y": 350}
+  ],
+  "foliage": [
+    {"x": 300, "y": 200, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 500, "y": 150, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 400, "y": 350, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30}
+  ],
+  "ammoPowerUps": [
+    {"x": 150, "y": 150},
+    {"x": 650, "y": 400}
+  ],
+  "player": {
+    "x": 100,
+    "y": 100
+  }
+}

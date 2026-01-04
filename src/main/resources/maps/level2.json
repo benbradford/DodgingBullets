@@ -1,0 +1,30 @@
+{
+  "backgroundTexture": "desert.png",
+  "mapWidth": 3200,
+  "mapHeight": 1800,
+  "turrets": [
+    {"x": 500, "y": 300},
+    {"x": 1500, "y": 200},
+    {"x": 900, "y": 800}
+  ],
+  "foliage": [
+    {"x": 300, "y": 400, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 1100, "y": 300, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 1600, "y": 900, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 400, "y": 1000, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 2000, "y": 500, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 10},
+    {"x": 700, "y": 500, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
+    {"x": 1300, "y": 600, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
+    {"x": 200, "y": 700, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
+    {"x": 1900, "y": 1100, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50},
+    {"x": 600, "y": 1300, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50}
+  ],
+  "ammoPowerUps": [
+    {"x": 800, "y": 400},
+    {"x": 1600, "y": 500}
+  ],
+  "player": {
+    "x": 200,
+    "y": 200
+  }
+}

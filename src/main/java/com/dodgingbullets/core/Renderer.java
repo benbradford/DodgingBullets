@@ -13,4 +13,5 @@ public interface Renderer {
     void present();
     void cleanup();
     Texture loadTexture(String path);
+    void renderText(String text, float x, float y, float r, float g, float b);
 }

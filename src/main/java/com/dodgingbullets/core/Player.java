@@ -187,8 +187,8 @@ public class Player {
         
         Vec2 newPos = position.add(movement);
         
-        // Boundary checking - map is 4x screen size (2560x1440)
-        Vec2 mapBounds = new Vec2(GameConfig.MAP_WIDTH - 32, GameConfig.MAP_HEIGHT - 32);
+        // Boundary checking - map is configurable size per level
+        Vec2 mapBounds = new Vec2(GameObjectFactory.getMapWidth() - 32, GameObjectFactory.getMapHeight() - 32);
         Vec2 minBounds = new Vec2(32, 32);
         newPos = newPos.clamp(minBounds, mapBounds);
         

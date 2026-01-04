@@ -76,7 +76,7 @@ public class GameLoop {
         Vec2 screenCenter = new Vec2(GameConfig.SCREEN_WIDTH / 2, GameConfig.SCREEN_HEIGHT / 2);
         Vec2 desiredCamera = playerPos.subtract(screenCenter);
         
-        Vec2 mapBounds = new Vec2(GameConfig.MAP_WIDTH - GameConfig.SCREEN_WIDTH, GameConfig.MAP_HEIGHT - GameConfig.SCREEN_HEIGHT);
+        Vec2 mapBounds = new Vec2(GameObjectFactory.getMapWidth() - GameConfig.SCREEN_WIDTH, GameObjectFactory.getMapHeight() - GameConfig.SCREEN_HEIGHT);
         camera = desiredCamera.clamp(new Vec2(0, 0), mapBounds);
     }
     
@@ -242,8 +242,8 @@ public class GameLoop {
     public float getCameraX() { return camera.x(); }
     public float getCameraY() { return camera.y(); }
     public Vec2 getCamera() { return camera; }
-    public float getMapWidth() { return GameConfig.MAP_WIDTH; }
-    public float getMapHeight() { return GameConfig.MAP_HEIGHT; }
+    public float getMapWidth() { return GameObjectFactory.getMapWidth(); }
+    public float getMapHeight() { return GameObjectFactory.getMapHeight(); }
     public float getScreenWidth() { return GameConfig.SCREEN_WIDTH; }
     public float getScreenHeight() { return GameConfig.SCREEN_HEIGHT; }
 }
