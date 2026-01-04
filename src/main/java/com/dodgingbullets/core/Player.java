@@ -97,6 +97,13 @@ public class Player {
         // Store previous position for boundary checking
         Vec2 prevPos = position;
         
+        // Calculate speed multiplier based on running state
+        float speed = GameConfig.PLAYER_SPEED;
+        boolean isRunning = keys.length > 4 && keys[4]; // R key
+        if (isRunning) {
+            speed *= GameConfig.PLAYER_RUN_MULTIPLIER;
+        }
+        
         // Handle jump start immediately on press
         if (jumpPressed && !isJumping) {
             isJumping = true;
@@ -143,38 +150,38 @@ public class Player {
         if (keys[0]) { // W (up)
             if (keys[2]) { // A (left)
                 currentDirection = Direction.UP_LEFT;
-                movement = new Vec2(-2, 2);
+                movement = new Vec2(-speed, speed);
                 isMoving = true;
             } else if (keys[3]) { // D (right)
                 currentDirection = Direction.UP_RIGHT;
-                movement = new Vec2(2, 2);
+                movement = new Vec2(speed, speed);
                 isMoving = true;
             } else {
                 currentDirection = Direction.UP;
-                movement = new Vec2(0, 2);
+                movement = new Vec2(0, speed);
                 isMoving = true;
             }
         } else if (keys[1]) { // S (down)
             if (keys[2]) { // A (left)
                 currentDirection = Direction.DOWN_LEFT;
-                movement = new Vec2(-2, -2);
+                movement = new Vec2(-speed, -speed);
                 isMoving = true;
             } else if (keys[3]) { // D (right)
                 currentDirection = Direction.DOWN_RIGHT;
-                movement = new Vec2(2, -2);
+                movement = new Vec2(speed, -speed);
                 isMoving = true;
             } else {
                 currentDirection = Direction.DOWN;
-                movement = new Vec2(0, -2);
+                movement = new Vec2(0, -speed);
                 isMoving = true;
             }
         } else if (keys[2]) { // A (left)
             currentDirection = Direction.LEFT;
-            movement = new Vec2(-2, 0);
+            movement = new Vec2(-speed, 0);
             isMoving = true;
         } else if (keys[3]) { // D (right)
             currentDirection = Direction.RIGHT;
-            movement = new Vec2(2, 0);
+            movement = new Vec2(speed, 0);
             isMoving = true;
         }
         

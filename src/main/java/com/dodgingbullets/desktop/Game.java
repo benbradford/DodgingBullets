@@ -35,7 +35,7 @@ public class Game {
     private Map<Direction, Texture> turretTextures = new HashMap<>();
     private Map<String, Texture> explosionTextures = new HashMap<>();
     private Map<String, Texture> foliageTextures = new HashMap<>();
-    private boolean[] keys = new boolean[4]; // W, A, S, D
+    private boolean[] keys = new boolean[5]; // W, A, S, D, R
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
     private boolean mousePressed = false;
@@ -114,6 +114,7 @@ public class Game {
                 case GLFW_KEY_S: keys[1] = pressed; break;
                 case GLFW_KEY_A: keys[2] = pressed; break;
                 case GLFW_KEY_D: keys[3] = pressed; break;
+                case GLFW_KEY_R: keys[4] = pressed; break;
                 case GLFW_KEY_J: 
                     jumpPressed = (action == GLFW_PRESS);
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);

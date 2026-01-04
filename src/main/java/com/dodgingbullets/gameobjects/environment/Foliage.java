@@ -47,13 +47,13 @@ public class Foliage extends GameObject implements Renderable, Collidable {
     
     @Override
     public float getRenderY() {
-        return position.y(); // Use center Y for depth sorting (same as turret)
+        return position.y() - spriteHeight/3; // Offset by 1/3 of sprite height for proper depth sorting
     }
     
     @Override
     public boolean checkSpriteCollision(float x, float y, float width, float height) {
-        // Sprite collision is offset from bottom of sprite
-        float bottomY = position.y() - spriteHeight/2;
+        // Sprite collision is offset 30 pixels above bottom of sprite
+        float bottomY = position.y() - spriteHeight/2 + 30;
         return x < position.x() + spriteCollisionWidth/2 && x + width > position.x() - spriteCollisionWidth/2 && 
                y < bottomY + spriteCollisionHeight && y + height > bottomY;
     }

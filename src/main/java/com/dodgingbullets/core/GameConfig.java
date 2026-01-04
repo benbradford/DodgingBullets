@@ -18,6 +18,8 @@ public class GameConfig {
     public static final int ENEMY_DAMAGE = 5;
     public static final int EXPLOSION_DAMAGE = 1;
     public static final int GRENADE_EXPLOSION_DAMAGE = 100;
+    public static final float PLAYER_SPEED = 2.0f;
+    public static final float PLAYER_RUN_MULTIPLIER = 2.0f;
     
     // Grenade constants
     public static final float GRENADE_MIN_RANGE = 50;

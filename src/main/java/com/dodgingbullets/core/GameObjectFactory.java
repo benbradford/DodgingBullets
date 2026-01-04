@@ -21,11 +21,11 @@ public class GameObjectFactory {
     public static List<GameObject> createFoliage() {
         List<GameObject> foliages = new ArrayList<>();
         // Regular foliage
-        foliages.add(new Foliage(400, 300, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
-        foliages.add(new Foliage(1000, 200, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
-        foliages.add(new Foliage(1500, 800, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
-        foliages.add(new Foliage(200, 900, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
-        foliages.add(new Foliage(1800, 600, 50f, 50f, 50f, 50f, 50f, 30f, "foliage"));
+        foliages.add(new Foliage(400, 300, 50f, 50f, 50f, 30f, 50f, 25f, "foliage"));
+        foliages.add(new Foliage(1000, 200, 50f, 50f, 50f, 30f, 50f, 25f, "foliage"));
+        foliages.add(new Foliage(1500, 800, 50f, 50f, 50f, 30f, 50f, 25f, "foliage"));
+        foliages.add(new Foliage(200, 900, 50f, 50f, 50f, 30f, 50f, 25f, "foliage"));
+        foliages.add(new Foliage(1800, 600, 50f, 50f, 50f, 30f, 50f, 25f, "foliage"));
         
         // Palm trees (sprite collision for bullets, smaller movement collision for player)
         foliages.add(new Foliage(600, 400, 120f, 120f, 40f, 45f, 50f, 30f, "palm_trees"));
