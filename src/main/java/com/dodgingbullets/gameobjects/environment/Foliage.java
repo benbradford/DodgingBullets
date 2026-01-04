@@ -10,9 +10,10 @@ public class Foliage extends GameObject implements Renderable, Collidable {
     private final float movementCollisionWidth;
     private final float movementCollisionHeight;
     private final String textureKey;
+    private final float renderOffset;
 
     public Foliage(float x, float y, float width, float height, float spriteCollisionWidth, float spriteCollisionHeight, 
-                   float movementCollisionWidth, float movementCollisionHeight, String textureKey) {
+                   float movementCollisionWidth, float movementCollisionHeight, String textureKey, float renderOffset) {
         super(x, y);
         this.spriteWidth = width;
         this.spriteHeight = height;
@@ -21,6 +22,7 @@ public class Foliage extends GameObject implements Renderable, Collidable {
         this.movementCollisionWidth = movementCollisionWidth;
         this.movementCollisionHeight = movementCollisionHeight;
         this.textureKey = textureKey;
+        this.renderOffset = renderOffset;
     }
     
     public String getTextureKey() {
@@ -47,7 +49,7 @@ public class Foliage extends GameObject implements Renderable, Collidable {
     
     @Override
     public float getRenderY() {
-        return position.y() - spriteHeight/3; // Offset by 1/3 of sprite height for proper depth sorting
+        return position.y() - renderOffset; // Use configurable offset for proper depth sorting
     }
     
     @Override
