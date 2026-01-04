@@ -18,10 +18,9 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class Game {
     private long window;
     private Renderer renderer;
+    private StateManager stateManager;
     private GameLoop gameLoop;
     private GameRenderer gameRenderer;
-    private LevelSelectScreen levelSelectScreen;
-    private boolean inLevelSelect = true;
     private Texture grassTexture;
     private Texture shadowTexture;
     private Texture bulletTexture;
@@ -43,6 +42,7 @@ public class Game {
     private boolean mousePressed = false;
     private boolean mouseHeld = false;
     private boolean grenadePressed = false;
+    private boolean qPressed = false;
     private double mouseX = 0;
     private double mouseY = 0;
     
@@ -92,15 +92,35 @@ public class Game {
         
         renderer = new DesktopRenderer();
         renderer.initialize();
-        
-        levelSelectScreen = new LevelSelectScreen();
-        
+
         loadTextures();
-        
+
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                  explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+        
+        // Initialize state machine
+        stateManager = new StateManager();
+        gameLoop = new GameLoop();
+        
+        // Create background updater
+        Runnable backgroundUpdater = () -> {
+            String backgroundTexture = GameObjectFactory.getBackgroundTexture();
+            grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
+            gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
+                                   shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
+                                   explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
+        };
+        
+        // Create states - we'll set the circular reference after
+        GamePlayState gamePlayState = new GamePlayState(gameLoop, gameRenderer, renderer, stateManager, null);
+        LevelSelectState levelSelectState = new LevelSelectState(stateManager, gamePlayState, renderer, backgroundUpdater);
+        
+        // Now update the GamePlayState with the correct LevelSelectState reference
+        gamePlayState.setLevelSelectState(levelSelectState);
+        
+        stateManager.setState(levelSelectState);
     }
     
     private void setupInputCallbacks() {
@@ -116,6 +136,9 @@ public class Game {
                 case GLFW_KEY_A: keys[2] = pressed; break;
                 case GLFW_KEY_D: keys[3] = pressed; break;
                 case GLFW_KEY_R: keys[4] = pressed; break;
+                case GLFW_KEY_Q: 
+                    qPressed = (action == GLFW_PRESS);
+                    break;
                 case GLFW_KEY_J: 
                     jumpPressed = (action == GLFW_PRESS);
                     jumpHeld = (action == GLFW_PRESS || action == GLFW_REPEAT);
@@ -132,28 +155,6 @@ public class Game {
                 if (action == GLFW_PRESS) {
                     mousePressed = true;
                     mouseHeld = true;
-                    
-                    // Handle level select clicks
-                    if (inLevelSelect) {
-                        levelSelectScreen.handleClick(mouseX, mouseY);
-                        if (levelSelectScreen.isLevelSelected()) {
-                            // Initialize game with selected level
-                            GameObjectFactory.loadLevel(levelSelectScreen.getChosenLevel());
-                            
-                            // Load the background texture for this level
-                            String backgroundTexture = GameObjectFactory.getBackgroundTexture();
-                            grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
-                            
-                            // Update renderer with new background
-                            gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
-                                                     shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
-                                                     explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture);
-                            
-                            gameLoop = new GameLoop();
-                            gameLoop.initialize(renderer);
-                            inLevelSelect = false;
-                        }
-                    }
                 } else if (action == GLFW_RELEASE) {
                     mouseHeld = false;
                 }
@@ -209,50 +210,26 @@ public class Game {
     
     private void loop() {
         while (!glfwWindowShouldClose(window)) {
-            if (inLevelSelect) {
-                // Render level select screen
-                renderLevelSelect();
-            } else {
-                // Update game logic
-                gameLoop.update(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, mouseX, mouseY);
-                jumpPressed = false; // Reset jump press after processing
-                mousePressed = false; // Reset mouse press after processing
-                grenadePressed = false; // Reset grenade press after processing
-                
-                // Render everything
-                gameRenderer.render(renderer, gameLoop);
-            }
+            // Create input state
+            double worldMouseX = mouseX + (gameLoop != null ? gameLoop.getCamera().x() : 0) - GameConfig.SCREEN_WIDTH / 2.0;
+            double worldMouseY = mouseY + (gameLoop != null ? gameLoop.getCamera().y() : 0) - GameConfig.SCREEN_HEIGHT / 2.0;
+            
+            InputState inputState = new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, 
+                                                  grenadePressed, qPressed, mouseX, mouseY, worldMouseX, worldMouseY);
+            
+            // Update state machine
+            stateManager.update(0.016f, inputState);
+            stateManager.render(renderer);
+            
+            // Reset single-frame inputs
+            jumpPressed = false;
+            mousePressed = false;
+            grenadePressed = false;
+            qPressed = false;
             
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-    }
-    
-    private void renderLevelSelect() {
-        renderer.clear();
-        
-        // Render level buttons
-        List<String> levels = levelSelectScreen.getAvailableLevels();
-        float buttonWidth = 200;
-        float buttonHeight = 40;
-        float startX = (GameConfig.SCREEN_WIDTH - buttonWidth) / 2;
-        float startY = 270;
-        
-        for (int i = 0; i < levels.size(); i++) {
-            float buttonY = startY - i * 60;
-            
-            // Render button background
-            renderer.renderRect(startX, buttonY, buttonWidth, buttonHeight, 0.3f, 0.3f, 0.3f, 0.8f);
-            
-            // Render button outline
-            renderer.renderRectOutline(startX, buttonY, buttonWidth, buttonHeight, 1.0f, 1.0f, 1.0f, 1.0f);
-            
-            // Render level text
-            String levelName = levels.get(i).replace(".json", "").toUpperCase();
-            renderer.renderText(levelName, startX + 10, buttonY + 15, 1.0f, 1.0f, 1.0f);
-        }
-        
-        renderer.present();
     }
     
     private void cleanup() {

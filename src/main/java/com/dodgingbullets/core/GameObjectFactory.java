@@ -10,7 +10,7 @@ import java.util.List;
 
 public class GameObjectFactory {
     
-    private static MapLoader.MapData mapData = MapLoader.loadMap("maps/level1.json");
+    private static MapLoader.MapData mapData;
     
     public static void loadLevel(String levelPath) {
         mapData = MapLoader.loadMap(levelPath);

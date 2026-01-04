@@ -8,6 +8,182 @@ DodgingBullets is a 2D top-down Java game built with LWJGL/OpenGL featuring:
 - Grid-based collision detection with dual hitbox system
 - Interface-based GameObject architecture for extensibility
 
+## State Machine System
+
+### Purpose
+The state machine manages different screens and game modes (level select, gameplay, pause, etc.) with clean separation and easy transitions. Each state handles its own input, rendering, and logic independently.
+
+### Core Components
+- **GameState**: Interface for all game states (update, render, enter, exit)
+- **StateManager**: Manages state transitions and current state execution
+- **Concrete States**: LevelSelectState, GamePlayState, PauseState (example)
+
+### How It Works
+
+#### State Lifecycle
+1. **enter()**: Called when transitioning INTO this state (initialization)
+2. **update()**: Called every frame while state is active (input handling, logic)
+3. **render()**: Called every frame while state is active (drawing)
+4. **exit()**: Called when transitioning OUT of this state (cleanup)
+
+#### State Transitions
+```java
+// From any state, request transition to another state
+stateManager.setState(newState);
+```
+
+#### StateManager Logic
+1. **Transition Frame**: When setState() is called, StateManager:
+   - Calls currentState.exit()
+   - Sets new state as current
+   - Calls newState.enter()
+   - **Skips update() for this frame** (prevents input bleeding)
+
+2. **Normal Frame**: 
+   - Calls currentState.update() with input
+   - Calls currentState.render()
+
+### Current Implementation
+
+#### LevelSelectState
+- **Purpose**: Display level selection screen
+- **Input**: Mouse clicks on level buttons
+- **Transitions**: To GamePlayState when level selected
+- **Key Feature**: Loads level data and updates background texture
+
+#### GamePlayState  
+- **Purpose**: Main game loop (player, enemies, shooting, etc.)
+- **Input**: All game controls (WASD, mouse, J, G, Q)
+- **Transitions**: To LevelSelectState when Q pressed
+- **Key Feature**: Reinitializes GameLoop with new level data on enter()
+
+### Adding New States
+1. **Create State Class**: Implement GameState interface
+```java
+public class MapState implements GameState {
+    private StateManager stateManager;
+    private GameState previousState;
+    
+    public MapState(StateManager stateManager, GameState previousState) {
+        this.stateManager = stateManager;
+        this.previousState = previousState;
+    }
+    
+    @Override
+    public void update(float deltaTime, InputState inputState) {
+        if (inputState.keys[0]) { // W key
+            stateManager.setState(previousState);
+        }
+        // Handle map navigation input
+    }
+    
+    @Override
+    public void render(Renderer renderer) {
+        // Render map screen
+        renderer.clear();
+        renderer.renderText("MAP SCREEN", 100, 100, 1.0f, 1.0f, 1.0f);
+        renderer.present();
+    }
+    
+    @Override
+    public void enter() { /* Initialize map data */ }
+    
+    @Override
+    public void exit() { /* Cleanup map resources */ }
+}
+```
+
+2. **Create State Instance**: In Game.java initialization
+```java
+MapState mapState = new MapState(stateManager, gamePlayState);
+```
+
+3. **Add Transition Logic**: In existing states
+```java
+// In GamePlayState.update()
+if (inputState.keys[someKey]) {
+    stateManager.setState(mapState);
+}
+```
+
+### Circular Reference Pattern
+For states that transition back and forth (like GamePlay ↔ LevelSelect):
+
+```java
+// Create first state with null reference
+GamePlayState gamePlayState = new GamePlayState(..., null);
+// Create second state with reference to first
+LevelSelectState levelSelectState = new LevelSelectState(..., gamePlayState);
+// Update first state's reference to second
+gamePlayState.setLevelSelectState(levelSelectState);
+```
+
+### Best Practices
+
+#### Input Handling
+- **Single-press events**: Use separate boolean fields (qPressed, jumpPressed)
+- **Continuous events**: Use keys[] array (WASD movement)
+- **State-specific input**: Only handle relevant inputs in each state
+
+#### State Transitions
+- **Immediate return**: After calling setState(), return from update() to prevent further processing
+- **Frame delay**: StateManager skips update() on transition frame to prevent input bleeding
+- **Clean references**: Ensure circular references are properly established
+
+#### Resource Management
+- **enter()**: Load state-specific resources, reinitialize data
+- **exit()**: Clean up resources, save state if needed
+- **Shared resources**: Keep in Game.java, pass via constructor or setter
+
+### Common Patterns
+
+#### Pause Overlay
+```java
+public class PauseState implements GameState {
+    private GameState previousState;
+    
+    @Override
+    public void render(Renderer renderer) {
+        // Render previous state first (frozen game)
+        previousState.render(renderer);
+        // Render pause overlay on top
+        renderer.renderRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0, 0.5f);
+        renderer.renderText("PAUSED", centerX, centerY, 1, 1, 1);
+    }
+}
+```
+
+#### Settings Menu
+```java
+public class SettingsState implements GameState {
+    private List<Setting> settings;
+    private int selectedIndex = 0;
+    
+    @Override
+    public void update(float deltaTime, InputState inputState) {
+        if (inputState.keys[0]) selectedIndex--; // W
+        if (inputState.keys[1]) selectedIndex++; // S
+        if (inputState.mousePressed) applySettings();
+    }
+}
+```
+
+### Debugging State Issues
+
+#### Add Logging
+```java
+// In StateManager.update()
+System.out.println("State transition: " + 
+    (currentState != null ? currentState.getClass().getSimpleName() : "null") + 
+    " -> " + nextState.getClass().getSimpleName());
+```
+
+#### Common Issues
+- **Input bleeding**: Fixed by StateManager frame delay
+- **Broken references**: Use setter pattern for circular references
+- **Multiple instances**: Don't recreate states, reuse existing instances
+- **Missing transitions**: Ensure setState() is called and references are correct
+
 ## Architecture Principles
 
 ### Core Design Patterns

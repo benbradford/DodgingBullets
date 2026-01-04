@@ -37,6 +37,25 @@ DodgingBullets is an isometric-style action game where the player navigates a ti
 - **Fire Rate**: Shoots every 0.5 seconds when player is in sight
 - **Independent AI**: Each turret operates independently with its own state
 
+### State Machine System (NEW)
+The game now uses a state machine to manage different screens and game modes:
+
+#### Core Components
+- **GameState Interface**: Common interface for all game states (update, render, enter, exit)
+- **StateManager**: Handles state transitions and manages current state
+- **Concrete States**: LevelSelectState, GamePlayState, and extensible for pause/map screens
+
+#### Current States
+- **LevelSelectState**: Level selection screen with clickable level buttons
+- **GamePlayState**: Main gameplay state (wraps existing GameLoop + GameRenderer)
+- **PauseState**: Example implementation for pause functionality
+
+#### Benefits
+- **Clean Separation**: Each screen/mode is isolated in its own state class
+- **Easy Extension**: Adding new states (pause, map, settings) requires only implementing GameState
+- **Centralized Management**: StateManager handles all transitions and state lifecycle
+- **Consistent Interface**: All states use same InputState and Renderer interfaces
+
 ## Technical Architecture
 
 ### GameObject System (NEW)

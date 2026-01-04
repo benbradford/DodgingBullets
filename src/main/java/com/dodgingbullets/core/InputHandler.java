@@ -24,6 +24,7 @@ public class InputHandler {
             worldMouseY = scaledMouseY + cameraY;
         }
         
-        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, worldMouseX, worldMouseY);
+        return new InputState(keys, jumpPressed, jumpHeld, mousePressed, mouseHeld, grenadePressed, false,
+                             mouseX, mouseY, worldMouseX, worldMouseY);
     }
 }
