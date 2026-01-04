@@ -625,6 +625,8 @@ assets/bear/
     └── north-west.png
 ```
 
+**Important Limitation**: Bears can only be initialized facing **east** or **west** directions. While they have full 8-directional movement and animation during gameplay, the initial facing direction in level configuration must be either "east" or "west" due to asset availability constraints.
+
 ### State Machine Implementation
 
 #### State Definitions
@@ -1290,3 +1292,198 @@ private boolean isPlayerInVisionCone(float playerX, float playerY) {
 ```
 
 The line of sight system provides flexible detection mechanics that can be customized for different enemy types, from simple range-based detection to complex ray casting with obstacle awareness.
+
+## Level Configuration System
+
+The game uses a JSON-based level loading system that allows easy creation and modification of game levels without code changes. Each level defines enemy positions, foliage placement, power-ups, and environmental settings.
+
+### Level File Structure
+
+#### Basic Level Template
+```json
+{
+  "backgroundTexture": "desert.png",
+  "mapWidth": 3200,
+  "mapHeight": 1800,
+  "turrets": [
+    {"x": 500, "y": 300},
+    {"x": 1500, "y": 200}
+  ],
+  "foliage": [
+    {
+      "x": 700, "y": 500,
+      "width": 120, "height": 120,
+      "spriteCollisionWidth": 40, "spriteCollisionHeight": 45,
+      "movementCollisionWidth": 50, "movementCollisionHeight": 30,
+      "textureKey": "palm_trees",
+      "renderOffset": 30
+    }
+  ],
+  "ammoPowerUps": [
+    {"x": 800, "y": 400}
+  ],
+  "bears": [
+    {"x": 1200, "y": 1000, "facing": "west"},
+    {"x": 2200, "y": 300, "facing": "east"}
+  ],
+  "player": {
+    "x": 200, "y": 200
+  }
+}
+```
+
+### Configuration Parameters
+
+#### Map Settings
+- **backgroundTexture**: Texture file name for level background
+- **mapWidth**: Level width in pixels
+- **mapHeight**: Level height in pixels
+
+#### Enemy Configuration
+
+**Turrets**:
+```json
+{"x": 500, "y": 300}
+```
+- Simple position-only configuration
+- Auto-initialized with default settings
+
+**Bears**:
+```json
+{"x": 1200, "y": 1000, "facing": "west"}
+```
+- **x, y**: Position coordinates
+- **facing**: Initial direction ("east" or "west" only)
+- **Limitation**: Bears can only start facing east or west due to asset constraints
+
+#### Foliage Configuration
+```json
+{
+  "x": 700, "y": 500,                    // Position
+  "width": 120, "height": 120,           // Sprite dimensions
+  "spriteCollisionWidth": 40,            // Bullet collision width
+  "spriteCollisionHeight": 45,           // Bullet collision height
+  "movementCollisionWidth": 50,          // Movement blocking width
+  "movementCollisionHeight": 30,         // Movement blocking height
+  "textureKey": "palm_trees",            // Texture identifier
+  "renderOffset": 30                     // Y-offset for depth sorting
+}
+```
+
+#### Available Foliage Types
+- **"foliage"**: Small bushes (50x50 pixels)
+- **"palm_trees"**: Individual palm trees (120x120 pixels)
+- **"palm_trees_group"**: Large palm tree clusters (500x190 pixels)
+
+#### Power-Up Configuration
+```json
+{"x": 800, "y": 400}
+```
+- **ammoPowerUps**: Provides special bullets when collected
+
+### Level Examples
+
+#### Level 2 (Desert Theme)
+- **Background**: Desert terrain
+- **Size**: 3200x1800 pixels (large map)
+- **Enemies**: 3 turrets + 3 bears
+- **Features**: Multiple palm tree groups, varied foliage
+- **Difficulty**: High (multiple bears + large area)
+
+#### Level 3 (Grass Theme)
+- **Background**: Vibrant grass
+- **Size**: 800x500 pixels (small map)
+- **Enemies**: 2 turrets + 1 bear
+- **Features**: Minimal foliage, close quarters
+- **Difficulty**: Medium (confined space + bear)
+
+### Level Loading System
+
+#### File Location
+```
+src/main/resources/maps/
+├── level1.json
+├── level2.json
+└── level3.json
+```
+
+#### Loading Process
+1. **LevelSelectState**: User selects level
+2. **GameObjectFactory.loadLevel()**: Loads JSON file
+3. **MapLoader.parseJson()**: Parses configuration
+4. **GameLoop**: Initializes objects from parsed data
+
+#### Error Handling
+- **File Not Found**: Falls back to hardcoded default level
+- **Parse Errors**: Uses default values for missing fields
+- **Invalid Data**: Skips malformed entries, continues loading
+
+### Creating New Levels
+
+#### Step 1: Create JSON File
+```bash
+# Create new level file
+touch src/main/resources/maps/level4.json
+```
+
+#### Step 2: Define Level Structure
+```json
+{
+  "backgroundTexture": "vibrant_random_grass.png",
+  "mapWidth": 1600,
+  "mapHeight": 900,
+  "turrets": [
+    {"x": 400, "y": 200},
+    {"x": 1200, "y": 700}
+  ],
+  "foliage": [],
+  "ammoPowerUps": [
+    {"x": 800, "y": 450}
+  ],
+  "bears": [
+    {"x": 600, "y": 300, "facing": "east"}
+  ],
+  "player": {
+    "x": 100, "y": 100
+  }
+}
+```
+
+#### Step 3: Update Level Selection
+Add level button to LevelSelectState for new level access.
+
+### Design Guidelines
+
+#### Enemy Placement
+- **Turret Spacing**: Minimum 300 pixels apart to avoid overlap
+- **Bear Positioning**: Place away from player spawn (minimum 400 pixels)
+- **Line of Sight**: Consider obstacles when placing enemies
+- **Difficulty Scaling**: More enemies = higher difficulty
+
+#### Foliage Placement
+- **Strategic Blocking**: Use large foliage to create cover and chokepoints
+- **Visual Variety**: Mix different foliage types for visual interest
+- **Movement Flow**: Don't block all paths, allow multiple routes
+- **Collision Considerations**: Ensure movement hitboxes don't create impossible passages
+
+#### Map Sizing
+- **Small Maps** (800x600): Close combat, high intensity
+- **Medium Maps** (1600x1200): Balanced gameplay
+- **Large Maps** (3200x1800): Exploration, strategic positioning
+
+#### Power-Up Distribution
+- **Ammo Crates**: Place strategically to encourage exploration
+- **Risk/Reward**: Position near enemies or in dangerous areas
+- **Accessibility**: Ensure all power-ups are reachable
+
+### Level Configuration Best Practices
+
+1. **Test Early**: Load and test levels frequently during creation
+2. **Player Spawn**: Always place player away from immediate danger
+3. **Escape Routes**: Provide multiple paths for tactical movement
+4. **Visual Balance**: Distribute foliage evenly across the map
+5. **Performance**: Large maps with many objects may impact performance
+6. **Asset Validation**: Ensure all textureKey references exist
+7. **Coordinate Validation**: Keep all positions within map bounds
+
+The level configuration system provides flexible, data-driven level design that supports rapid iteration and easy content creation without code modifications.

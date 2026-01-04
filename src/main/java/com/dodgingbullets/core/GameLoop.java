@@ -104,10 +104,42 @@ public class GameLoop {
     }
     
     private void handleShooting(InputState input) {
-        // Handle auto-aim shooting with spacebar
         boolean canRapidFire = player.hasSpecialBullets();
+        
+        // Mouse shooting takes priority over auto-aim
+        boolean shouldShootMouse = canRapidFire ? input.mouseHeld : input.mousePressed;
         boolean shouldAutoAim = canRapidFire ? input.spaceHeld : input.spacePressed;
         
+        // If both inputs active, prioritize mouse
+        if (shouldShootMouse && shouldAutoAim) {
+            shouldAutoAim = false;
+        }
+        
+        // Handle mouse shooting
+        if (shouldShootMouse && player.canShoot()) {
+            // Check rapid fire timing for special bullets
+            if (canRapidFire) {
+                long now = System.currentTimeMillis();
+                if (now - lastPlayerShootTime < 100) { // 10 shots per second = 100ms interval
+                    return;
+                }
+                lastPlayerShootTime = now;
+            }
+            
+            double deltaX = input.worldMouseX - player.getX();
+            double deltaY = input.worldMouseY - player.getY();
+            double angle = Math.atan2(deltaY, deltaX);
+            
+            Direction shootDirection = Player.calculateDirectionFromAngle(angle);
+            player.setShootingDirection(shootDirection);
+            
+            player.shoot();
+            float[] gunPos = player.getGunBarrelPosition();
+            bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));
+            shells.add(new ShellCasing(player.getX(), player.getY()));
+        }
+        
+        // Handle auto-aim shooting with spacebar
         if (shouldAutoAim && player.canShoot()) {
             // Check timing for both rapid fire and normal bullets
             long now = System.currentTimeMillis();
@@ -157,32 +189,6 @@ public class GameLoop {
             }
             
             player.setShootingDirection(shootDirection);
-            player.shoot();
-            float[] gunPos = player.getGunBarrelPosition();
-            bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));
-            shells.add(new ShellCasing(player.getX(), player.getY()));
-        }
-        
-        // Handle player shooting with mouse
-        boolean shouldShoot = canRapidFire ? input.mouseHeld : input.mousePressed;
-        
-        if (shouldShoot && player.canShoot()) {
-            // Check rapid fire timing for special bullets
-            if (canRapidFire) {
-                long now = System.currentTimeMillis();
-                if (now - lastPlayerShootTime < 100) { // 10 shots per second = 100ms interval
-                    return;
-                }
-                lastPlayerShootTime = now;
-            }
-            
-            double deltaX = input.worldMouseX - player.getX();
-            double deltaY = input.worldMouseY - player.getY();
-            double angle = Math.atan2(deltaY, deltaX);
-            
-            Direction shootDirection = Player.calculateDirectionFromAngle(angle);
-            player.setShootingDirection(shootDirection);
-            
             player.shoot();
             float[] gunPos = player.getGunBarrelPosition();
             bullets.add(new Bullet(gunPos[0], gunPos[1], angle, true, player.hasSpecialBullets()));

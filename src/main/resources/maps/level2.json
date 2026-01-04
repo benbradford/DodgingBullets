@@ -17,11 +17,18 @@
     {"x": 1300, "y": 600, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
     {"x": 200, "y": 700, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
     {"x": 1900, "y": 1100, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50},
-    {"x": 600, "y": 1300, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50}
+    {"x": 600, "y": 1300, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50},
+    {"x": 2500, "y": 800, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50},
+    {"x": 1000, "y": 1500, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50}
   ],
   "ammoPowerUps": [
     {"x": 800, "y": 400},
     {"x": 1600, "y": 500}
+  ],
+  "bears": [
+    {"x": 1200, "y": 700, "facing": "west"},
+    {"x": 2800, "y": 400, "facing": "east"},
+    {"x": 300, "y": 1400, "facing": "east"}
   ],
   "player": {
     "x": 200,
