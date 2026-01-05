@@ -60,21 +60,71 @@ public class MapLoader {
             mapData.mapHeight = extractFloat(json, "\"mapHeight\":");
         }
         
-        // Simple JSON parsing without external libraries
-        String[] sections = json.split("\"turrets\":|\"foliage\":|\"ammoPowerUps\":|\"bears\":|\"throwers\":|\"player\":");
-        
-        for (int i = 1; i < sections.length; i++) {
-            String section = sections[i].trim();
-            if (section.startsWith("[")) {
-                if (i == 1) parseTurrets(section, mapData);
-                else if (i == 2) parseFoliage(section, mapData);
-                else if (i == 3) parseAmmoPowerUps(section, mapData);
-                else if (i == 4) parseBears(section, mapData);
-                else if (i == 5) parseThrowers(section, mapData);
-            } else if (section.startsWith("{")) {
-                parsePlayer(section, mapData);
-            }
+        // Parse each section by finding its specific key
+        if (json.contains("\"turrets\":")) {
+            String turretsSection = extractSection(json, "\"turrets\":");
+            parseTurrets(turretsSection, mapData);
         }
+        
+        if (json.contains("\"foliage\":")) {
+            String foliageSection = extractSection(json, "\"foliage\":");
+            parseFoliage(foliageSection, mapData);
+        }
+        
+        if (json.contains("\"ammoPowerUps\":")) {
+            String ammoSection = extractSection(json, "\"ammoPowerUps\":");
+            parseAmmoPowerUps(ammoSection, mapData);
+        }
+        
+        if (json.contains("\"bears\":")) {
+            String bearsSection = extractSection(json, "\"bears\":");
+            parseBears(bearsSection, mapData);
+        }
+        
+        if (json.contains("\"throwers\":")) {
+            String throwersSection = extractSection(json, "\"throwers\":");
+            parseThrowers(throwersSection, mapData);
+        }
+        
+        if (json.contains("\"player\":")) {
+            String playerSection = extractSection(json, "\"player\":");
+            parsePlayer(playerSection, mapData);
+        }
+    }
+    
+    private static String extractSection(String json, String key) {
+        int start = json.indexOf(key) + key.length();
+        // Skip whitespace and colon
+        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == ':')) {
+            start++;
+        }
+        
+        if (start >= json.length()) return "";
+        
+        char startChar = json.charAt(start);
+        if (startChar == '[') {
+            // Array section
+            int bracketCount = 1;
+            int end = start + 1;
+            while (end < json.length() && bracketCount > 0) {
+                if (json.charAt(end) == '[') bracketCount++;
+                else if (json.charAt(end) == ']') bracketCount--;
+                end++;
+            }
+            return json.substring(start, end);
+        } else if (startChar == '{') {
+            // Object section
+            int braceCount = 1;
+            int end = start + 1;
+            while (end < json.length() && braceCount > 0) {
+                if (json.charAt(end) == '{') braceCount++;
+                else if (json.charAt(end) == '}') braceCount--;
+                end++;
+            }
+            return json.substring(start, end);
+        }
+        
+        return "";
     }
     
     private static void parseTurrets(String section, MapData mapData) {

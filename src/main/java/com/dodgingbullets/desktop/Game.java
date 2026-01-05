@@ -181,27 +181,30 @@ public class Game {
     
     private void loadTextures() {
         grassTexture = renderer.loadTexture("assets/vibrant_random_grass.png");
-        shadowTexture = renderer.loadTexture("src/main/resources/textures/shadow.png");
-        bulletTexture = renderer.loadTexture("src/main/resources/textures/bullet.png");
-        shellTexture = renderer.loadTexture("src/main/resources/textures/shell.png");
-        brokenTurretTexture = renderer.loadTexture("src/main/resources/textures/broken_turret.png");
-        vignetteTexture = renderer.loadTexture("src/main/resources/textures/vignette.png");
-        foliageTexture = renderer.loadTexture("src/main/resources/textures/foliage.png");
+        shadowTexture = renderer.loadTexture("assets/shadow.png");
+        bulletTexture = renderer.loadTexture("assets/bullet.png");
+        shellTexture = renderer.loadTexture("assets/shell.png");
+        brokenTurretTexture = renderer.loadTexture("assets/gunturret_broken.png");
+        vignetteTexture = renderer.loadTexture("assets/vignette.png");
+        foliageTexture = renderer.loadTexture("assets/foliage01.png");
         palmTreesTexture = renderer.loadTexture("assets/palm_trees01.png");
         palmTreesGroupTexture = renderer.loadTexture("assets/palm_trees_group.png");
+        Texture palmTreesGroupLongTexture = renderer.loadTexture("assets/palm_trees_group_long.png");
+        Texture palmTreesGroupVerticalTexture = renderer.loadTexture("assets/palm_trees_group_vertical.png");
+        Texture palmTreesGroupVerticalLongTexture = renderer.loadTexture("assets/palm_trees_group_vertical_long.png");
         ammoFullTexture = renderer.loadTexture("assets/ammocratefull.png");
         ammoEmptyTexture = renderer.loadTexture("assets/ammocrateempty.png");
         grenadeTexture = renderer.loadTexture("assets/grenade2_alpha.png");
         
         // Load turret textures for all 8 directions
-        turretTextures.put(Direction.UP, renderer.loadTexture("src/main/resources/textures/turret_n.png"));
-        turretTextures.put(Direction.UP_RIGHT, renderer.loadTexture("src/main/resources/textures/turret_ne.png"));
-        turretTextures.put(Direction.RIGHT, renderer.loadTexture("src/main/resources/textures/turret_e.png"));
-        turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("src/main/resources/textures/turret_se.png"));
-        turretTextures.put(Direction.DOWN, renderer.loadTexture("src/main/resources/textures/turret_s.png"));
-        turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("src/main/resources/textures/turret_sw.png"));
-        turretTextures.put(Direction.LEFT, renderer.loadTexture("src/main/resources/textures/turret_w.png"));
-        turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("src/main/resources/textures/turret_nw.png"));
+        turretTextures.put(Direction.UP, renderer.loadTexture("assets/gunturret_n.png"));
+        turretTextures.put(Direction.UP_RIGHT, renderer.loadTexture("assets/gunturret_ne.png"));
+        turretTextures.put(Direction.RIGHT, renderer.loadTexture("assets/gunturret_e.png"));
+        turretTextures.put(Direction.DOWN_RIGHT, renderer.loadTexture("assets/gunturret_se.png"));
+        turretTextures.put(Direction.DOWN, renderer.loadTexture("assets/gunturret_s.png"));
+        turretTextures.put(Direction.DOWN_LEFT, renderer.loadTexture("assets/gunturret_sw.png"));
+        turretTextures.put(Direction.LEFT, renderer.loadTexture("assets/gunturret_w.png"));
+        turretTextures.put(Direction.UP_LEFT, renderer.loadTexture("assets/gunturret_nw.png"));
         
         // Load explosion textures
         explosionTextures.put("explosionanim_1_0.png", renderer.loadTexture("assets/explosionanim_1_0.png"));
@@ -218,6 +221,9 @@ public class Game {
         foliageTextures.put("foliage", foliageTexture);
         foliageTextures.put("palm_trees", palmTreesTexture);
         foliageTextures.put("palm_trees_group", palmTreesGroupTexture);
+        foliageTextures.put("palm_trees_group_long", palmTreesGroupLongTexture);
+        foliageTextures.put("palm_trees_group_vertical", palmTreesGroupVerticalTexture);
+        foliageTextures.put("palm_trees_group_vertical_long", palmTreesGroupVerticalLongTexture);
         
         // Load bear textures
         loadBearTextures();

@@ -1,39 +1,63 @@
 {
   "backgroundTexture": "vibrant_random_grass.png",
-  "mapWidth": 2560,
-  "mapHeight": 1440,
-  "turrets": [
-    {"x": 800, "y": 150},
-    {"x": 1200, "y": 400},
-    {"x": 600, "y": 600}
-  ],
+  "mapWidth": 1500,
+  "mapHeight": 1500,
+  "turrets": [],
+  "bears": [],
   "foliage": [
-    {"x": 400, "y": 300, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 0},
-    {"x": 1000, "y": 200, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 0},
-    {"x": 1500, "y": 800, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 0},
-    {"x": 200, "y": 900, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 0},
-    {"x": 1800, "y": 600, "width": 50, "height": 50, "spriteCollisionWidth": 50, "spriteCollisionHeight": 30, "movementCollisionWidth": 50, "movementCollisionHeight": 25, "textureKey": "foliage", "renderOffset": 0},
-    {"x": 600, "y": 400, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
-    {"x": 1200, "y": 700, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
-    {"x": 300, "y": 600, "width": 120, "height": 120, "spriteCollisionWidth": 40, "spriteCollisionHeight": 45, "movementCollisionWidth": 50, "movementCollisionHeight": 30, "textureKey": "palm_trees", "renderOffset": 30},
-    {"x": 1800, "y": 1000, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50},
-    {"x": 800, "y": 1200, "width": 500, "height": 190, "spriteCollisionWidth": 380, "spriteCollisionHeight": 120, "movementCollisionWidth": 430, "movementCollisionHeight": 120, "textureKey": "palm_trees_group", "renderOffset": 50}
+    {
+      "x": 0,
+      "y": 752,
+      "width": 500,
+      "height": 1510,
+      "spriteCollisionWidth": 380,
+      "spriteCollisionHeight": 1440,
+      "movementCollisionWidth": 430,
+      "movementCollisionHeight": 1440,
+      "textureKey": "palm_trees_group_vertical_long",
+      "renderOffset": 50
+    },
+    {
+      "x": 786,
+      "y": 98,
+      "width": 1403,
+      "height": 199,
+      "spriteCollisionWidth": 1140,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 1290,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group_long",
+      "renderOffset": 50
+    },
+    {
+      "x": 828,
+      "y": 1263,
+      "width": 1403,
+      "height": 199,
+      "spriteCollisionWidth": 1140,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 1290,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group_long",
+      "renderOffset": 50
+    },
+    {
+      "x": 1306,
+      "y": 761,
+      "width": 500,
+      "height": 1510,
+      "spriteCollisionWidth": 380,
+      "spriteCollisionHeight": 1440,
+      "movementCollisionWidth": 430,
+      "movementCollisionHeight": 1440,
+      "textureKey": "palm_trees_group_vertical_long",
+      "renderOffset": 50
+    }
   ],
-  "ammoPowerUps": [
-    {"x": 500, "y": 500},
-    {"x": 1400, "y": 300}
-  ],
-  "bears": [
-    {"x": 1000, "y": 1000, "facing": "west"},
-    {"x": 1800, "y": 300, "facing": "west"},
-    {"x": 400, "y": 800, "facing": "east"}
-  ],
-  "throwers": [
-    {"x": 1600, "y": 500, "facing": "west"},
-    {"x": 900, "y": 300, "facing": "east"}
-  ],
+  "ammoPowerUps": [],
+  "throwers": [],
   "player": {
-    "x": 320,
-    "y": 180
+    "x": 351,
+    "y": 236
   }
 }

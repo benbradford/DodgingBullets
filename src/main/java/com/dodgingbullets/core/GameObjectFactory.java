@@ -6,6 +6,8 @@ import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.enemies.Thrower;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
+import com.dodgingbullets.gameobjects.effects.PetrolBomb;
+import com.dodgingbullets.core.Direction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,5 +54,36 @@ public class GameObjectFactory {
     
     public static float getMapHeight() {
         return mapData.mapHeight;
+    }
+    
+    // Individual creation methods for editor
+    public static GameObject createTurret(float x, float y) {
+        return new GunTurret(x, y);
+    }
+    
+    public static GameObject createBear(float x, float y, String facing) {
+        Direction direction = "west".equals(facing) ? Direction.LEFT : Direction.RIGHT;
+        return new Bear(x, y, direction);
+    }
+    
+    public static GameObject createFoliage(float x, float y, String textureKey) {
+        return new Foliage(x, y, 64, 64, 64, 64, 64, 32, textureKey, 0);
+    }
+    
+    public static GameObject createFoliage(float x, float y, int width, int height, 
+                                         int spriteCollisionWidth, int spriteCollisionHeight,
+                                         int movementCollisionWidth, int movementCollisionHeight,
+                                         String textureKey, int renderOffset) {
+        return new Foliage(x, y, width, height, spriteCollisionWidth, spriteCollisionHeight,
+                          movementCollisionWidth, movementCollisionHeight, textureKey, renderOffset);
+    }
+    
+    public static GameObject createAmmoPowerUp(float x, float y) {
+        return new AmmoPowerUp(x, y);
+    }
+    
+    public static GameObject createThrower(float x, float y) {
+        // For editor, create with minimal parameters
+        return new Thrower(x, y, Direction.RIGHT, new ArrayList<>(), new ArrayList<>());
     }
 }

@@ -168,8 +168,7 @@ The game uses two types of hitboxes for different collision purposes:
 - `src/main/java/com/dodgingbullets/gameobjects/enemies/` - Enemy implementations (GunTurret)
 - `src/main/java/com/dodgingbullets/gameobjects/effects/` - Visual effects (Explosion)
 - `src/main/java/com/dodgingbullets/desktop/` - Desktop-specific implementation (Game, DesktopRenderer)
-- `src/main/resources/textures/` - Game textures and sprites
-- `assets/` - Original texture assets including explosion animation frames
+- `assets/` - Game textures and sprites including explosion animation frames
 - `pom.xml` - Maven build configuration
 
 ## Build & Run

@@ -570,12 +570,8 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
     
     @Override
     public boolean checkMovementCollision(float x, float y, float width, float height) {
-        Vec2 testPos = new Vec2(x + width/2, y + height/2);
-        Vec2 halfSize = new Vec2(32, 16);
-        Vec2 min = position.subtract(halfSize);
-        Vec2 max = position.add(halfSize);
-        return testPos.x() >= min.x() && testPos.x() <= max.x() && 
-               testPos.y() >= min.y() && testPos.y() <= max.y();
+        // Allow player to pass through thrower - no movement collision
+        return false;
     }
     
     // Getters
