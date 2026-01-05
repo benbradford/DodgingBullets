@@ -37,6 +37,8 @@ public class Game {
     private Map<String, Texture> explosionTextures = new HashMap<>();
     private Map<String, Texture> foliageTextures = new HashMap<>();
     private Map<String, Texture> bearTextures = new HashMap<>();
+    private Map<String, Texture> throwerTextures = new HashMap<>();
+    private Texture petrolBombTexture;
     private boolean[] keys = new boolean[5]; // W, A, S, D, R
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -101,7 +103,8 @@ public class Game {
         gameRenderer = new GameRenderer();
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
-                                 explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, bearTextures);
+                                 explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
+                                 bearTextures, throwerTextures, petrolBombTexture);
         
         // Initialize state machine
         stateManager = new StateManager();
@@ -113,7 +116,8 @@ public class Game {
             grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
             gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                    shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
-                                   explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, bearTextures);
+                                   explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
+                                   bearTextures, throwerTextures, petrolBombTexture);
         };
         
         // Create states - we'll set the circular reference after
@@ -217,6 +221,12 @@ public class Game {
         
         // Load bear textures
         loadBearTextures();
+        
+        // Load thrower textures
+        loadThrowerTextures();
+        
+        // Load petrol bomb texture
+        petrolBombTexture = renderer.loadTexture("assets/petrol_bomb.png");
     }
     
     private void loadBearTextures() {
@@ -250,6 +260,46 @@ public class Game {
             for (int i = 0; i <= 11; i++) {
                 bearTextures.put("bear_hit_" + dir + "_" + String.format("%03d", i), 
                     renderer.loadTexture("assets/bear/animations/hit/" + dir + "/frame_" + String.format("%03d", i) + ".png"));
+            }
+        }
+    }
+    
+    private void loadThrowerTextures() {
+        // Load rotation textures (idle, hit, dying states)
+        String[] directions = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+        for (String dir : directions) {
+            String path = "assets/thrower/rotations/" + dir + ".png";
+            try {
+                throwerTextures.put("thrower_rotation_" + dir, renderer.loadTexture(path));
+            } catch (Exception e) {
+                System.err.println("Failed to load texture: " + path);
+                throw e;
+            }
+        }
+        
+        // Load walking animations for all 8 directions (4 frames each)
+        for (String dir : directions) {
+            for (int i = 0; i <= 3; i++) {
+                String path = "assets/thrower/animations/walking/" + dir + "/frame_" + String.format("%03d", i) + ".png";
+                try {
+                    throwerTextures.put("thrower_walking_" + dir + "_" + String.format("%03d", i), renderer.loadTexture(path));
+                } catch (Exception e) {
+                    System.err.println("Failed to load texture: " + path);
+                    throw e;
+                }
+            }
+        }
+        
+        // Load throwing animations for all 8 directions (6 frames each)
+        for (String dir : directions) {
+            for (int i = 0; i <= 6; i++) {
+                String path = "assets/thrower/animations/throw/" + dir + "/frame_" + String.format("%03d", i) + ".png";
+                try {
+                    throwerTextures.put("thrower_throw_" + dir + "_" + String.format("%03d", i), renderer.loadTexture(path));
+                } catch (Exception e) {
+                    System.err.println("Failed to load texture: " + path);
+                    throw e;
+                }
             }
         }
     }

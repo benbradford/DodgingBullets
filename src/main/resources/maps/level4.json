@@ -1,0 +1,28 @@
+{
+  "backgroundTexture": "vibrant_random_grass.png",
+  "mapWidth": 1600,
+  "mapHeight": 900,
+  "turrets": [
+    {"x": 400, "y": 200}
+  ],
+  "foliage": [
+    {
+      "x": 600, "y": 400,
+      "width": 50, "height": 50,
+      "spriteCollisionWidth": 50, "spriteCollisionHeight": 30,
+      "movementCollisionWidth": 50, "movementCollisionHeight": 25,
+      "textureKey": "foliage",
+      "renderOffset": 10
+    }
+  ],
+  "ammoPowerUps": [
+    {"x": 800, "y": 450}
+  ],
+  "bears": [],
+  "throwers": [
+    {"x": 1000, "y": 300, "facing": "west"}
+  ],
+  "player": {
+    "x": 100, "y": 100
+  }
+}

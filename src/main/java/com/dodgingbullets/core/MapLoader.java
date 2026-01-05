@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.enemies.Bear;
+import com.dodgingbullets.gameobjects.enemies.Thrower;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
@@ -19,6 +20,7 @@ public class MapLoader {
         public List<GameObject> foliage = new ArrayList<>();
         public List<GameObject> ammoPowerUps = new ArrayList<>();
         public List<GameObject> bears = new ArrayList<>();
+        public List<GameObject> throwers = new ArrayList<>();
         public Player player;
     }
     
@@ -59,7 +61,7 @@ public class MapLoader {
         }
         
         // Simple JSON parsing without external libraries
-        String[] sections = json.split("\"turrets\":|\"foliage\":|\"ammoPowerUps\":|\"bears\":|\"player\":");
+        String[] sections = json.split("\"turrets\":|\"foliage\":|\"ammoPowerUps\":|\"bears\":|\"throwers\":|\"player\":");
         
         for (int i = 1; i < sections.length; i++) {
             String section = sections[i].trim();
@@ -68,6 +70,7 @@ public class MapLoader {
                 else if (i == 2) parseFoliage(section, mapData);
                 else if (i == 3) parseAmmoPowerUps(section, mapData);
                 else if (i == 4) parseBears(section, mapData);
+                else if (i == 5) parseThrowers(section, mapData);
             } else if (section.startsWith("{")) {
                 parsePlayer(section, mapData);
             }
@@ -125,6 +128,21 @@ public class MapLoader {
                 String facingStr = obj.contains("\"facing\":") ? extractString(obj, "\"facing\":") : "east";
                 Direction facing = parseFacingDirection(facingStr);
                 mapData.bears.add(new Bear(x, y, facing));
+            }
+        }
+    }
+    
+    private static void parseThrowers(String section, MapData mapData) {
+        String[] objects = section.split("\\{");
+        for (String obj : objects) {
+            if (obj.contains("\"x\":")) {
+                int x = extractInt(obj, "\"x\":");
+                int y = extractInt(obj, "\"y\":");
+                String facingStr = obj.contains("\"facing\":") ? extractString(obj, "\"facing\":") : "east";
+                Direction facing = parseFacingDirection(facingStr);
+                // Note: Thrower constructor needs collidableObjects and petrolBombs lists
+                // These will be set later in GameLoop initialization
+                mapData.throwers.add(new Thrower(x, y, facing, null, null));
             }
         }
     }

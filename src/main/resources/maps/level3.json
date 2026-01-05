@@ -18,6 +18,9 @@
   "bears": [
     {"x": 550, "y": 300, "facing": "west"}
   ],
+  "throwers": [
+    {"x": 350, "y": 100, "facing": "east"}
+  ],
   "player": {
     "x": 100,
     "y": 100

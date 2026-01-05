@@ -2,8 +2,10 @@ package com.dodgingbullets.core;
 
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.effects.Explosion;
+import com.dodgingbullets.gameobjects.effects.PetrolBomb;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.enemies.Bear;
+import com.dodgingbullets.gameobjects.enemies.Thrower;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import java.util.ArrayList;
@@ -25,13 +27,16 @@ public class GameRenderer {
     private Texture grenadeTexture;
     private Map<String, Texture> explosionTextures;
     private Map<String, Texture> bearTextures = new HashMap<>();
+    private Map<String, Texture> throwerTextures = new HashMap<>();
+    private Texture petrolBombTexture;
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
                            Texture brokenTurretTexture, Texture vignetteTexture, Map<String, Texture> foliageTextures,
                            Map<String, Texture> explosionTextures, 
                            Texture ammoFullTexture, Texture ammoEmptyTexture, Texture grenadeTexture,
-                           Map<String, Texture> bearTextures) {
+                           Map<String, Texture> bearTextures, Map<String, Texture> throwerTextures, 
+                           Texture petrolBombTexture) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -45,6 +50,8 @@ public class GameRenderer {
         this.grenadeTexture = grenadeTexture;
         this.explosionTextures = explosionTextures;
         this.bearTextures = bearTextures;
+        this.throwerTextures = throwerTextures;
+        this.petrolBombTexture = petrolBombTexture;
     }
     
     public void render(Renderer renderer, GameLoop gameLoop) {
@@ -91,6 +98,22 @@ public class GameRenderer {
             float scale = grenade.getScale();
             float size = 24 * scale; // 1.5x bigger (16 * 1.5 = 24)
             renderer.renderRotatedWithAlpha(grenadeTexture, grenadeX - size/2, grenadeY - size/2, size, size, grenade.getRotation(), 1.0f);
+        }
+        
+        // Render petrol bombs
+        for (PetrolBomb bomb : gameLoop.getPetrolBombs()) {
+            // Render shadow on ground
+            float shadowX = bomb.getShadowPosition().x() - cameraX;
+            float shadowY = bomb.getShadowPosition().y() - cameraY;
+            float bombShadowScale = bomb.getShadowScale();
+            float bombShadowSize = 30 * bombShadowScale; // Increased from 20 to 30 for better visibility
+            renderer.renderTextureWithColor(shadowTexture, shadowX - bombShadowSize/2, shadowY - bombShadowSize/2, bombShadowSize, bombShadowSize, 0.0f, 0.0f, 0.0f, 0.8f); // Increased alpha from 0.5f to 0.8f
+            
+            // Render bomb in air
+            float bombX = bomb.getX() - cameraX;
+            float bombY = bomb.getY() + bomb.getHeight() - cameraY; // Changed from minus to plus for upward trajectory
+            float bombSize = 32; // Increased from 16 to 32 for better visibility
+            renderer.renderRotatedWithAlpha(petrolBombTexture, bombX - bombSize/2, bombY - bombSize/2, bombSize, bombSize, bomb.getRotation(), 1.0f);
         }
         
         // Render explosions on top of everything
@@ -146,6 +169,9 @@ public class GameRenderer {
                 if (gameObj instanceof Bear) {
                     Bear bear = (Bear) gameObj;
                     renderBear(renderer, bear, cameraX, cameraY);
+                } else if (gameObj instanceof Thrower) {
+                    Thrower thrower = (Thrower) gameObj;
+                    renderThrower(renderer, thrower, cameraX, cameraY);
                 } else if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
                     Trackable trackable = (Trackable) gameObj;
                     Damageable damageable = (Damageable) gameObj;
@@ -244,6 +270,58 @@ public class GameRenderer {
                 // Normal rendering
                 renderer.render(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64);
             }
+        }
+    }
+    
+    private void renderThrower(Renderer renderer, Thrower thrower, float cameraX, float cameraY) {
+        if (!thrower.isActive()) return;
+        
+        // Get the appropriate texture based on thrower state and direction
+        String textureKey = getThrowerTextureKey(thrower);
+        Texture throwerTexture = throwerTextures.get(textureKey);
+        
+        // Debug logging
+        if (throwerTexture == null) {
+            System.err.println("Missing thrower texture: " + textureKey + 
+                " (State: " + thrower.getState() + ", Frame: " + thrower.getCurrentFrame() + 
+                ", Direction: " + thrower.getFacingDirection() + ")");
+            return;
+        }
+        
+        if (throwerTexture != null) {
+            float alpha = thrower.getAlpha();
+            float rotation = thrower.getRotation();
+            
+            if (thrower.getState() == Thrower.ThrowerState.DYING) {
+                // Render with fade effect and rotation
+                renderer.renderRotatedWithAlpha(throwerTexture, thrower.getX() - 32 - cameraX, thrower.getY() - 32 - cameraY, 64, 64, rotation, alpha);
+            } else {
+                // Normal rendering
+                renderer.render(throwerTexture, thrower.getX() - 32 - cameraX, thrower.getY() - 32 - cameraY, 64, 64);
+            }
+        }
+    }
+    
+    private String getThrowerTextureKey(Thrower thrower) {
+        Thrower.ThrowerState state = thrower.getState();
+        Direction direction = thrower.getFacingDirection();
+        int frame = thrower.getCurrentFrame();
+        
+        String directionStr = getDirectionString(direction);
+        
+        switch (state) {
+            case IDLE:
+                return "thrower_rotation_" + directionStr;
+            case CHASE:
+            case BACKING_OFF:
+                return "thrower_walking_" + directionStr + "_" + String.format("%03d", frame);
+            case THROWING:
+                return "thrower_throw_" + directionStr + "_" + String.format("%03d", frame);
+            case HIT:
+            case DYING:
+                return "thrower_rotation_" + directionStr;
+            default:
+                return "thrower_rotation_east";
         }
     }
     

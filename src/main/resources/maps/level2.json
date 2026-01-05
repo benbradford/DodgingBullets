@@ -30,6 +30,11 @@
     {"x": 2800, "y": 400, "facing": "east"},
     {"x": 300, "y": 1400, "facing": "east"}
   ],
+  "throwers": [
+    {"x": 2200, "y": 600, "facing": "west"},
+    {"x": 800, "y": 1000, "facing": "east"},
+    {"x": 1800, "y": 1200, "facing": "west"}
+  ],
   "player": {
     "x": 200,
     "y": 200
