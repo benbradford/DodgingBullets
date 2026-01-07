@@ -3,7 +3,15 @@
   "mapWidth": 1500,
   "mapHeight": 1500,
   "turrets": [],
-  "bears": [],
+  "bears": [
+    {
+      "x": 735,
+      "y": 479,
+      "facing": "east",
+      "health": 30,
+      "speed": 50.0
+    }
+  ],
   "foliage": [
     {
       "x": 0,
@@ -30,18 +38,6 @@
       "renderOffset": 50
     },
     {
-      "x": 828,
-      "y": 1263,
-      "width": 1403,
-      "height": 199,
-      "spriteCollisionWidth": 1140,
-      "spriteCollisionHeight": 120,
-      "movementCollisionWidth": 1290,
-      "movementCollisionHeight": 120,
-      "textureKey": "palm_trees_group_long",
-      "renderOffset": 50
-    },
-    {
       "x": 1306,
       "y": 761,
       "width": 500,
@@ -52,10 +48,126 @@
       "movementCollisionHeight": 1440,
       "textureKey": "palm_trees_group_vertical_long",
       "renderOffset": 50
+    },
+    {
+      "x": 355,
+      "y": 984,
+      "width": 500,
+      "height": 190,
+      "spriteCollisionWidth": 380,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 430,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group",
+      "renderOffset": 50
+    },
+    {
+      "x": 356,
+      "y": 647,
+      "width": 500,
+      "height": 190,
+      "spriteCollisionWidth": 380,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 430,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group",
+      "renderOffset": 50
+    },
+    {
+      "x": 722,
+      "y": 650,
+      "width": 500,
+      "height": 190,
+      "spriteCollisionWidth": 380,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 430,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group",
+      "renderOffset": 50
+    },
+    {
+      "x": 629,
+      "y": 405,
+      "width": 120,
+      "height": 120,
+      "spriteCollisionWidth": 40,
+      "spriteCollisionHeight": 45,
+      "movementCollisionWidth": 50,
+      "movementCollisionHeight": 30,
+      "textureKey": "palm_trees",
+      "renderOffset": 30
+    },
+    {
+      "x": 866,
+      "y": 406,
+      "width": 120,
+      "height": 120,
+      "spriteCollisionWidth": 40,
+      "spriteCollisionHeight": 45,
+      "movementCollisionWidth": 50,
+      "movementCollisionHeight": 30,
+      "textureKey": "palm_trees",
+      "renderOffset": 30
+    },
+    {
+      "x": 373,
+      "y": 404,
+      "width": 120,
+      "height": 120,
+      "spriteCollisionWidth": 40,
+      "spriteCollisionHeight": 45,
+      "movementCollisionWidth": 50,
+      "movementCollisionHeight": 30,
+      "textureKey": "palm_trees",
+      "renderOffset": 30
+    },
+    {
+      "x": 755,
+      "y": 1337,
+      "width": 1403,
+      "height": 199,
+      "spriteCollisionWidth": 1140,
+      "spriteCollisionHeight": 120,
+      "movementCollisionWidth": 1290,
+      "movementCollisionHeight": 120,
+      "textureKey": "palm_trees_group_long",
+      "renderOffset": 50
     }
   ],
   "ammoPowerUps": [],
-  "throwers": [],
+  "throwers": [
+    {
+      "x": 296,
+      "y": 820,
+      "facing": "east",
+      "health": 100,
+      "speed": 100.0
+    },
+    {
+      "x": 299,
+      "y": 755,
+      "facing": "east",
+      "health": 100,
+      "speed": 100.0
+    },
+    {
+      "x": 470,
+      "y": 1099,
+      "facing": "east",
+      "health": 100,
+      "speed": 100.0
+    }
+  ],
+  "mortars": [
+    {
+      "x": 500,
+      "y": 300,
+      "lookDirection": "east",
+      "lookDistance": 300,
+      "health": 30,
+      "firingSpeed": 2
+    }
+  ],
   "player": {
     "x": 351,
     "y": 236

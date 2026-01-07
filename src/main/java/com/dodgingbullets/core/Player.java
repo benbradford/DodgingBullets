@@ -31,6 +31,7 @@ public class Player {
     private int ammo = 10;
     private static final int MAX_AMMO = 10;
     private long lastAmmoRegenTime = 0;
+    private static final int RELOAD_TIME = 330;
     
     // Special bullets system
     private int specialBullets = 0;
@@ -240,7 +241,7 @@ public class Player {
         
         // Ammo regeneration (only for regular ammo)
         if (specialBullets == 0 && ammo < MAX_AMMO) {
-            if (now - lastAmmoRegenTime >= 1000) { // 1 second intervals
+            if (now - lastAmmoRegenTime >= RELOAD_TIME) {
                 ammo = Math.min(MAX_AMMO, ammo + 1);
                 lastAmmoRegenTime = now;
             }

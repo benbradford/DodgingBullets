@@ -40,7 +40,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
     // Constants
     private static final float SIGHT_RANGE = 250f;
     private static final float ATTACK_RANGE = 30f;
-    private static final float MOVE_SPEED = 150f;
+    private final float moveSpeed;
     private static final float KNOCKBACK_FORCE = 200f;
     private static final float FRICTION = 0.85f;
     private static final float GRAVITY = 300f;
@@ -54,12 +54,17 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
     private static final float FADE_DURATION = 2.0f;
     
     public Bear(float x, float y) {
-        this(x, y, Direction.RIGHT); // Default to east
+        this(x, y, Direction.RIGHT, 100, 150f); // Default values
     }
     
     public Bear(float x, float y, Direction facingDirection) {
-        super(x, y, 50);
+        this(x, y, facingDirection, 100, 150f); // Default values
+    }
+    
+    public Bear(float x, float y, Direction facingDirection, int health, float speed) {
+        super(x, y, health);
         this.facingDirection = facingDirection;
+        this.moveSpeed = speed;
     }
     
     @Override
@@ -240,7 +245,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
         
         if (distance > 0) {
             Vec2 normalizedDirection = direction.multiply(1.0f / distance);
-            velocity = normalizedDirection.multiply(MOVE_SPEED);
+            velocity = normalizedDirection.multiply(moveSpeed);
             
             // Calculate new position
             Vec2 newPosition = position.add(velocity.multiply(deltaTime));
@@ -257,8 +262,8 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
                     Vec2 xOnlyDirection = new Vec2(normalizedDirection.x(), 0).multiply(1.0f / Math.abs(normalizedDirection.x()));
                     Vec2 yOnlyDirection = new Vec2(0, normalizedDirection.y()).multiply(1.0f / Math.abs(normalizedDirection.y()));
                     
-                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(MOVE_SPEED * 0.5f * deltaTime));
-                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(MOVE_SPEED * 0.5f * deltaTime));
+                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(moveSpeed * 0.5f * deltaTime));
+                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(moveSpeed * 0.5f * deltaTime));
                     
                     boolean xBlocked = checkCollisionAtPosition(xTestPos);
                     boolean yBlocked = checkCollisionAtPosition(yTestPos);
@@ -277,7 +282,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
                             new Vec2(1, 0), new Vec2(-1, 0), new Vec2(0, 1), new Vec2(0, -1)
                         };
                         for (Vec2 testDir : perpendiculars) {
-                            Vec2 testPos = position.add(testDir.multiply(MOVE_SPEED * 0.5f * deltaTime));
+                            Vec2 testPos = position.add(testDir.multiply(moveSpeed * 0.5f * deltaTime));
                             if (!checkCollisionAtPosition(testPos)) {
                                 bestDirection = testDir;
                                 break;
@@ -294,7 +299,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
                 
                 // Try random movement if we have a valid direction
                 if (randomDirection.distance(new Vec2(0, 0)) > 0) {
-                    Vec2 randomVelocity = randomDirection.multiply(MOVE_SPEED * 0.5f);
+                    Vec2 randomVelocity = randomDirection.multiply(moveSpeed * 0.5f);
                     Vec2 randomNewPosition = position.add(randomVelocity.multiply(deltaTime));
                     
                     if (!checkCollisionAtPosition(randomNewPosition)) {

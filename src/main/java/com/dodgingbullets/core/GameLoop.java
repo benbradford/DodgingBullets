@@ -3,6 +3,7 @@ package com.dodgingbullets.core;
 import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.enemies.Thrower;
+import com.dodgingbullets.gameobjects.enemies.Mortar;
 import com.dodgingbullets.gameobjects.effects.Explosion;
 import com.dodgingbullets.gameobjects.effects.PetrolBomb;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
@@ -17,6 +18,7 @@ public class GameLoop {
     private List<ShellCasing> shells = new ArrayList<>();
     private List<Grenade> grenades = new ArrayList<>();
     private List<PetrolBomb> petrolBombs = new ArrayList<>();
+    private List<Bomb> bombs = new ArrayList<>();
     private List<GameObject> gameObjects = new ArrayList<>();
     private List<GameObject> foliages = new ArrayList<>();
     private List<GameObject> ammoPowerUps = new ArrayList<>();
@@ -43,6 +45,11 @@ public class GameLoop {
         // Add throwers to game objects
         gameObjects.addAll(GameObjectFactory.createThrowers());
         
+        // Add mortars to game objects
+        List<GameObject> mortars = GameObjectFactory.createMortars();
+        System.out.println("Loading " + mortars.size() + " mortars");
+        gameObjects.addAll(mortars);
+        
         // Set up collision objects for player
         List<GameObject> allCollidables = new ArrayList<>();
         allCollidables.addAll(gameObjects);
@@ -57,6 +64,8 @@ public class GameLoop {
             } else if (gameObject instanceof Thrower) {
                 ((Thrower) gameObject).setCollidableObjects(allCollidables);
                 ((Thrower) gameObject).setPetrolBombs(petrolBombs);
+            } else if (gameObject instanceof Mortar) {
+                ((Mortar) gameObject).setCollidableObjects(allCollidables);
             }
         }
     }
@@ -91,8 +100,12 @@ public class GameLoop {
         updateBullets();
         updateGrenades();
         updatePetrolBombs();
+        updateBombs();
         updateExplosions();
         updateShells();
+        
+        // Remove inactive game objects
+        gameObjects.removeIf(gameObject -> !gameObject.isActive());
     }
     
     private void updateCamera() {
@@ -112,6 +125,17 @@ public class GameLoop {
             }
             if (gameObject instanceof Thrower) {
                 ((Thrower) gameObject).setPlayerPosition(new Vec2(player.getX(), player.getY()));
+            }
+            if (gameObject instanceof Mortar) {
+                ((Mortar) gameObject).setPlayerPosition(new Vec2(player.getX(), player.getY()));
+                
+                // Check if mortar should fire
+                if (((Mortar) gameObject).canShoot()) {
+                    Mortar mortar = (Mortar) gameObject;
+                    float[] mortarPos = mortar.getBarrelPosition();
+                    bombs.add(new Bomb(mortarPos[0], mortarPos[1], player.getX(), player.getY()));
+                    mortar.shoot(player.getX(), player.getY());
+                }
             }
         }
     }
@@ -173,12 +197,12 @@ public class GameLoop {
             
             for (GameObject gameObject : gameObjects) {
                 if (gameObject instanceof Trackable && gameObject instanceof Damageable) {
-                    Trackable trackable = (Trackable) gameObject;
                     Damageable damageable = (Damageable) gameObject;
                     
+                    // Always allow targeting of enemies, regardless of state
                     if (!damageable.isDestroyed()) {
                         float distance = new Vec2(gameObject.getX(), gameObject.getY()).distance(new Vec2(player.getX(), player.getY()));
-                        if (distance <= 320 && distance < closestDistance) { // Use same range as turrets
+                        if (distance <= 320 && distance < closestDistance) {
                             closestDistance = distance;
                             closestEnemy = gameObject;
                         }
@@ -349,6 +373,30 @@ public class GameLoop {
         }
     }
     
+    private void updateBombs() {
+        Iterator<Bomb> bombIter = bombs.iterator();
+        while (bombIter.hasNext()) {
+            Bomb bomb = bombIter.next();
+            bomb.update(GameConfig.DELTA_TIME);
+            
+            if (bomb.hasExploded()) {
+                // Create explosion at bomb position
+                Vec2 bombPos = bomb.getPosition();
+                explosions.add(new Explosion(bombPos.x(), bombPos.y()));
+                
+                // Damage player if in explosion radius
+                float distance = new Vec2(player.getX(), player.getY()).distance(bombPos);
+                if (distance <= 80) { // Explosion radius
+                    player.takeDamage(20); // Mortar bomb damage
+                }
+                
+                bombIter.remove();
+            } else if (!bomb.isActive()) {
+                bombIter.remove();
+            }
+        }
+    }
+    
     private void updateExplosions() {
         Iterator<Explosion> explosionIter = explosions.iterator();
         while (explosionIter.hasNext()) {
@@ -394,6 +442,7 @@ public class GameLoop {
     public List<ShellCasing> getShells() { return shells; }
     public List<Grenade> getGrenades() { return grenades; }
     public List<PetrolBomb> getPetrolBombs() { return petrolBombs; }
+    public List<Bomb> getBombs() { return bombs; }
     public List<GameObject> getGameObjects() { return gameObjects; }
     public List<GameObject> getFoliages() { return foliages; }
     public List<GameObject> getAmmoPowerUps() { return ammoPowerUps; }

@@ -17,7 +17,7 @@ import java.util.Map;
 
 public class EditorState implements EditorGameState {
     public enum EditorMode {
-        SELECT, DELETE, PLACE
+        SELECT, DELETE, PLACE, CONFIGURE
     }
     
     public enum PlaceableType {
@@ -55,6 +55,8 @@ public class EditorState implements EditorGameState {
     private FoliageTextureType selectedFoliageTexture = FoliageTextureType.FOLIAGE;
     private boolean hasUnsavedChanges = false;
     private boolean showMapConfig = false;
+    private boolean showEnemyConfig = false;
+    private GameObject configuredEnemy = null;
     
     private static final String[] BACKGROUND_TEXTURES = {
         "vibrant_random_grass.png",
@@ -75,6 +77,8 @@ public class EditorState implements EditorGameState {
     private Texture backgroundTexture;
     private Map<GameObject, LevelData.FoliageData> originalFoliageData = new HashMap<>();
     private Map<GameObject, String> originalFacingData = new HashMap<>();
+    private Map<GameObject, Integer> enemyHealthValues = new HashMap<>();
+    private Map<GameObject, Float> enemySpeedValues = new HashMap<>();
 
     public EditorState(EditorStateManager stateManager, Renderer renderer, String levelFile, EditorLevelSelectState levelSelectState) {
         this.stateManager = stateManager;
@@ -241,6 +245,9 @@ public class EditorState implements EditorGameState {
                 case PLACE:
                     handlePlaceMode(worldPos);
                     break;
+                case CONFIGURE:
+                    handleConfigureMode(worldPos);
+                    break;
             }
         }
         
@@ -284,22 +291,34 @@ public class EditorState implements EditorGameState {
             return true;
         }
         if (isPointInRect(mouseX, mouseY, 10, 250, 80, 30)) {
+            currentMode = EditorMode.CONFIGURE;
+            return true;
+        }
+        if (isPointInRect(mouseX, mouseY, 10, 200, 80, 30)) {
             currentMode = EditorMode.PLACE;
             return true;
         }
         
         // Placeable type buttons (only in PLACE mode)
         if (currentMode == EditorMode.PLACE) {
-            if (isPointInRect(mouseX, mouseY, 10, 200, 80, 30)) {
+            if (isPointInRect(mouseX, mouseY, 10, 150, 80, 30)) {
                 selectedPlaceableType = PlaceableType.TURRET;
                 return true;
             }
-            if (isPointInRect(mouseX, mouseY, 10, 150, 80, 30)) {
+            if (isPointInRect(mouseX, mouseY, 10, 100, 80, 30)) {
                 selectedPlaceableType = PlaceableType.BEAR;
                 return true;
             }
-            if (isPointInRect(mouseX, mouseY, 10, 100, 80, 30)) {
+            if (isPointInRect(mouseX, mouseY, 10, 50, 80, 30)) {
                 selectedPlaceableType = PlaceableType.FOLIAGE;
+                return true;
+            }
+            if (isPointInRect(mouseX, mouseY, 10, 10, 80, 30)) {
+                selectedPlaceableType = PlaceableType.AMMO_POWERUP;
+                return true;
+            }
+            if (isPointInRect(mouseX, mouseY, 100, 150, 80, 30)) {
+                selectedPlaceableType = PlaceableType.THROWER;
                 return true;
             }
             
@@ -330,13 +349,31 @@ public class EditorState implements EditorGameState {
                     return true;
                 }
             }
-            if (isPointInRect(mouseX, mouseY, 10, 50, 80, 30)) {
-                selectedPlaceableType = PlaceableType.AMMO_POWERUP;
+        }
+        
+        // Enemy config buttons (only in CONFIGURE mode)
+        if (currentMode == EditorMode.CONFIGURE && showEnemyConfig && configuredEnemy != null) {
+            // Health adjustment buttons
+            if (isPointInRect(mouseX, mouseY, 220, 350, 30, 20)) {
+                adjustEnemyHealth(configuredEnemy, -10);
                 return true;
             }
-            if (isPointInRect(mouseX, mouseY, 10, 10, 80, 30)) {
-                selectedPlaceableType = PlaceableType.THROWER;
+            if (isPointInRect(mouseX, mouseY, 370, 350, 30, 20)) {
+                adjustEnemyHealth(configuredEnemy, 10);
                 return true;
+            }
+            
+            // Speed adjustment buttons (only for bears and throwers)
+            String enemyType = getObjectType(configuredEnemy);
+            if ("bear".equals(enemyType) || "thrower".equals(enemyType)) {
+                if (isPointInRect(mouseX, mouseY, 220, 320, 30, 20)) {
+                    adjustEnemySpeed(configuredEnemy, -10f);
+                    return true;
+                }
+                if (isPointInRect(mouseX, mouseY, 370, 320, 30, 20)) {
+                    adjustEnemySpeed(configuredEnemy, 10f);
+                    return true;
+                }
             }
         }
         
@@ -430,6 +467,7 @@ public class EditorState implements EditorGameState {
                         LevelData.TurretData turret = new LevelData.TurretData();
                         turret.x = (int) Math.round(obj.getX());
                         turret.y = (int) Math.round(obj.getY());
+                        turret.health = enemyHealthValues.getOrDefault(obj, 100);
                         saveData.turrets.add(turret);
                         break;
                     case "foliage":
@@ -471,6 +509,8 @@ public class EditorState implements EditorGameState {
                         bear.x = (int) Math.round(obj.getX());
                         bear.y = (int) Math.round(obj.getY());
                         bear.facing = originalFacingData.getOrDefault(obj, "east");
+                        bear.health = enemyHealthValues.getOrDefault(obj, 100);
+                        bear.speed = enemySpeedValues.getOrDefault(obj, 150f);
                         saveData.bears.add(bear);
                         break;
                     case "thrower":
@@ -478,6 +518,8 @@ public class EditorState implements EditorGameState {
                         thrower.x = (int) Math.round(obj.getX());
                         thrower.y = (int) Math.round(obj.getY());
                         thrower.facing = originalFacingData.getOrDefault(obj, "east");
+                        thrower.health = enemyHealthValues.getOrDefault(obj, 100);
+                        thrower.speed = enemySpeedValues.getOrDefault(obj, 100f);
                         saveData.throwers.add(thrower);
                         break;
                 }
@@ -533,11 +575,57 @@ public class EditorState implements EditorGameState {
     }
 
     private void handlePlaceMode(Vec2 worldPos) {
-        GameObject newObject = createObjectOfType(selectedPlaceableType, worldPos.x(), worldPos.y());
+        // Adjust position to center object on mouse cursor
+        float adjustedX = worldPos.x();
+        float adjustedY = worldPos.y();
+        
+        if (selectedPlaceableType == PlaceableType.TURRET) {
+            // Turrets are 128x128 and rendered centered, so no adjustment needed
+        } else if (selectedPlaceableType == PlaceableType.FOLIAGE) {
+            // Foliage is rendered centered, so no adjustment needed
+        }
+        // Other objects (bears, ammo, throwers) are 64x64 and rendered centered, so no adjustment needed
+        
+        GameObject newObject = createObjectOfType(selectedPlaceableType, adjustedX, adjustedY);
         if (newObject != null) {
             gameObjects.add(newObject);
             hasUnsavedChanges = true;
         }
+    }
+
+    private void handleConfigureMode(Vec2 worldPos) {
+        GameObject clickedObject = findObjectAt(worldPos);
+        String objectType = clickedObject != null ? getObjectType(clickedObject) : null;
+        
+        // Only allow configuring enemies (turrets, bears, throwers)
+        if (clickedObject != null && ("gunturret".equals(objectType) || "bear".equals(objectType) || "thrower".equals(objectType))) {
+            configuredEnemy = clickedObject;
+            showEnemyConfig = true;
+        } else {
+            configuredEnemy = null;
+            showEnemyConfig = false;
+        }
+    }
+    
+    private void adjustEnemyHealth(GameObject enemy, int delta) {
+        int currentHealth = enemyHealthValues.getOrDefault(enemy, 100); // Default health
+        int newHealth = Math.max(10, Math.min(500, currentHealth + delta)); // Clamp between 10-500
+        enemyHealthValues.put(enemy, newHealth);
+        hasUnsavedChanges = true;
+    }
+    
+    private void adjustEnemySpeed(GameObject enemy, float delta) {
+        float currentSpeed = enemySpeedValues.getOrDefault(enemy, getDefaultSpeed(enemy));
+        float newSpeed = Math.max(0f, Math.min(300f, currentSpeed + delta)); // Clamp between 0-300
+        enemySpeedValues.put(enemy, newSpeed);
+        hasUnsavedChanges = true;
+    }
+    
+    private float getDefaultSpeed(GameObject enemy) {
+        String type = getObjectType(enemy);
+        if ("bear".equals(type)) return 150f;
+        if ("thrower".equals(type)) return 100f;
+        return 0f; // turrets don't move
     }
 
     private GameObject findObjectAt(Vec2 worldPos) {
@@ -574,9 +662,9 @@ public class EditorState implements EditorGameState {
         GameObject newObject;
         switch (type) {
             case TURRET:
-                return GameObjectFactory.createTurret(x, y);
+                return GameObjectFactory.createTurret(x, y, 100);
             case BEAR:
-                newObject = GameObjectFactory.createBear(x, y, "east");
+                newObject = GameObjectFactory.createBear(x, y, "east", 100, 150f);
                 originalFacingData.put(newObject, "east");
                 return newObject;
             case FOLIAGE:
@@ -600,7 +688,7 @@ public class EditorState implements EditorGameState {
             case AMMO_POWERUP:
                 return GameObjectFactory.createAmmoPowerUp(x, y);
             case THROWER:
-                newObject = GameObjectFactory.createThrower(x, y);
+                newObject = GameObjectFactory.createThrower(x, y, 100, 100f);
                 originalFacingData.put(newObject, "east");
                 return newObject;
             default:
@@ -612,15 +700,16 @@ public class EditorState implements EditorGameState {
         // Mode buttons
         renderModeButton(renderer, "SELECT", 10, 350, currentMode == EditorMode.SELECT);
         renderModeButton(renderer, "DELETE", 10, 300, currentMode == EditorMode.DELETE);
-        renderModeButton(renderer, "PLACE", 10, 250, currentMode == EditorMode.PLACE);
+        renderModeButton(renderer, "CONFIG", 10, 250, currentMode == EditorMode.CONFIGURE);
+        renderModeButton(renderer, "PLACE", 10, 200, currentMode == EditorMode.PLACE);
         
         // Placeable type buttons (only show in PLACE mode)
         if (currentMode == EditorMode.PLACE) {
-            renderPlaceableButton(renderer, "TURRET", 10, 200, selectedPlaceableType == PlaceableType.TURRET);
-            renderPlaceableButton(renderer, "BEAR", 10, 150, selectedPlaceableType == PlaceableType.BEAR);
-            renderPlaceableButton(renderer, "FOLIAGE", 10, 100, selectedPlaceableType == PlaceableType.FOLIAGE);
-            renderPlaceableButton(renderer, "AMMO", 10, 50, selectedPlaceableType == PlaceableType.AMMO_POWERUP);
-            renderPlaceableButton(renderer, "THROWER", 10, 10, selectedPlaceableType == PlaceableType.THROWER);
+            renderPlaceableButton(renderer, "TURRET", 10, 150, selectedPlaceableType == PlaceableType.TURRET);
+            renderPlaceableButton(renderer, "BEAR", 10, 100, selectedPlaceableType == PlaceableType.BEAR);
+            renderPlaceableButton(renderer, "FOLIAGE", 10, 50, selectedPlaceableType == PlaceableType.FOLIAGE);
+            renderPlaceableButton(renderer, "AMMO", 10, 10, selectedPlaceableType == PlaceableType.AMMO_POWERUP);
+            renderPlaceableButton(renderer, "THROWER", 100, 150, selectedPlaceableType == PlaceableType.THROWER);
             
             // Foliage texture selection (only when FOLIAGE is selected)
             if (selectedPlaceableType == PlaceableType.FOLIAGE) {
@@ -630,6 +719,34 @@ public class EditorState implements EditorGameState {
                 renderTextureButton(renderer, "palm_long", 100, 65, selectedFoliageTexture == FoliageTextureType.PALM_TREES_GROUP_LONG);
                 renderTextureButton(renderer, "palm_vert", 100, 30, selectedFoliageTexture == FoliageTextureType.PALM_TREES_GROUP_VERTICAL);
                 renderTextureButton(renderer, "vert_long", 210, 170, selectedFoliageTexture == FoliageTextureType.PALM_TREES_GROUP_VERTICAL_LONG);
+            }
+        }
+        
+        // Enemy config panel (only show in CONFIGURE mode)
+        if (currentMode == EditorMode.CONFIGURE) {
+            if (showEnemyConfig && configuredEnemy != null) {
+                String enemyType = getObjectType(configuredEnemy);
+                renderer.renderText("Configure " + enemyType.toUpperCase(), 10, 150, 1.0f, 1.0f, 1.0f);
+                
+                // Health controls
+                renderer.renderRect(220, 350, 30, 20, 0.5f, 0.5f, 0.5f, 1.0f);
+                renderer.renderText("-", 230, 355, 1.0f, 1.0f, 1.0f);
+                int currentHealth = enemyHealthValues.getOrDefault(configuredEnemy, 100);
+                renderer.renderText("Health: " + currentHealth, 255, 355, 1.0f, 1.0f, 1.0f);
+                renderer.renderRect(370, 350, 30, 20, 0.5f, 0.5f, 0.5f, 1.0f);
+                renderer.renderText("+", 380, 355, 1.0f, 1.0f, 1.0f);
+                
+                // Speed controls (only for bears and throwers)
+                if ("bear".equals(enemyType) || "thrower".equals(enemyType)) {
+                    renderer.renderRect(220, 320, 30, 20, 0.5f, 0.5f, 0.5f, 1.0f);
+                    renderer.renderText("-", 230, 325, 1.0f, 1.0f, 1.0f);
+                    float currentSpeed = enemySpeedValues.getOrDefault(configuredEnemy, getDefaultSpeed(configuredEnemy));
+                    renderer.renderText("Speed: " + (int)currentSpeed, 255, 325, 1.0f, 1.0f, 1.0f);
+                    renderer.renderRect(370, 320, 30, 20, 0.5f, 0.5f, 0.5f, 1.0f);
+                    renderer.renderText("+", 380, 325, 1.0f, 1.0f, 1.0f);
+                }
+            } else {
+                renderer.renderText("Click enemy to configure", 10, 150, 1.0f, 1.0f, 1.0f);
             }
         }
         
@@ -754,16 +871,20 @@ public class EditorState implements EditorGameState {
             // Load turrets
             if (levelData.turrets != null) {
                 for (LevelData.TurretData turret : levelData.turrets) {
-                    gameObjects.add(GameObjectFactory.createTurret(turret.x, turret.y));
+                    GameObject turretObj = GameObjectFactory.createTurret(turret.x, turret.y, turret.health);
+                    gameObjects.add(turretObj);
+                    enemyHealthValues.put(turretObj, turret.health);
                 }
             }
             
             // Load bears
             if (levelData.bears != null) {
                 for (LevelData.BearData bear : levelData.bears) {
-                    GameObject bearObj = GameObjectFactory.createBear(bear.x, bear.y, bear.facing);
+                    GameObject bearObj = GameObjectFactory.createBear(bear.x, bear.y, bear.facing, bear.health, bear.speed);
                     gameObjects.add(bearObj);
                     originalFacingData.put(bearObj, bear.facing);
+                    enemyHealthValues.put(bearObj, bear.health);
+                    enemySpeedValues.put(bearObj, bear.speed);
                 }
             }
             
@@ -788,9 +909,11 @@ public class EditorState implements EditorGameState {
             // Load throwers
             if (levelData.throwers != null) {
                 for (LevelData.ThrowerData thrower : levelData.throwers) {
-                    GameObject throwerObj = GameObjectFactory.createThrower(thrower.x, thrower.y);
+                    GameObject throwerObj = GameObjectFactory.createThrower(thrower.x, thrower.y, thrower.health, thrower.speed);
                     gameObjects.add(throwerObj);
                     originalFacingData.put(throwerObj, thrower.facing);
+                    enemyHealthValues.put(throwerObj, thrower.health);
+                    enemySpeedValues.put(throwerObj, thrower.speed);
                 }
             }
             

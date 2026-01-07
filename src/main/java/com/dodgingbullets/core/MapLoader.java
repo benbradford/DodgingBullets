@@ -4,6 +4,7 @@ import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.enemies.Thrower;
+import com.dodgingbullets.gameobjects.enemies.Mortar;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 
@@ -21,6 +22,7 @@ public class MapLoader {
         public List<GameObject> ammoPowerUps = new ArrayList<>();
         public List<GameObject> bears = new ArrayList<>();
         public List<GameObject> throwers = new ArrayList<>();
+        public List<GameObject> mortars = new ArrayList<>();
         public Player player;
     }
     
@@ -86,6 +88,11 @@ public class MapLoader {
             parseThrowers(throwersSection, mapData);
         }
         
+        if (json.contains("\"mortars\":")) {
+            String mortarsSection = extractSection(json, "\"mortars\":");
+            parseMortars(mortarsSection, mapData);
+        }
+        
         if (json.contains("\"player\":")) {
             String playerSection = extractSection(json, "\"player\":");
             parsePlayer(playerSection, mapData);
@@ -133,7 +140,9 @@ public class MapLoader {
             if (obj.contains("\"x\":")) {
                 int x = extractInt(obj, "\"x\":");
                 int y = extractInt(obj, "\"y\":");
-                mapData.turrets.add(new GunTurret(x, y));
+                int health = extractIntWithDefault(obj, "\"health\":", 100);
+                GunTurret turret = new GunTurret(x, y, health);
+                mapData.turrets.add(turret);
             }
         }
     }
@@ -176,8 +185,11 @@ public class MapLoader {
                 int x = extractInt(obj, "\"x\":");
                 int y = extractInt(obj, "\"y\":");
                 String facingStr = obj.contains("\"facing\":") ? extractString(obj, "\"facing\":") : "east";
+                int health = extractIntWithDefault(obj, "\"health\":", 100);
+                float speed = extractFloatWithDefault(obj, "\"speed\":", 150f);
                 Direction facing = parseFacingDirection(facingStr);
-                mapData.bears.add(new Bear(x, y, facing));
+                Bear bear = new Bear(x, y, facing, health, speed);
+                mapData.bears.add(bear);
             }
         }
     }
@@ -189,10 +201,30 @@ public class MapLoader {
                 int x = extractInt(obj, "\"x\":");
                 int y = extractInt(obj, "\"y\":");
                 String facingStr = obj.contains("\"facing\":") ? extractString(obj, "\"facing\":") : "east";
+                int health = extractIntWithDefault(obj, "\"health\":", 100);
+                float speed = extractFloatWithDefault(obj, "\"speed\":", 100f);
                 Direction facing = parseFacingDirection(facingStr);
                 // Note: Thrower constructor needs collidableObjects and petrolBombs lists
                 // These will be set later in GameLoop initialization
-                mapData.throwers.add(new Thrower(x, y, facing, null, null));
+                Thrower thrower = new Thrower(x, y, facing, null, null, health, speed);
+                mapData.throwers.add(thrower);
+            }
+        }
+    }
+    
+    private static void parseMortars(String section, MapData mapData) {
+        String[] objects = section.split("\\{");
+        for (String obj : objects) {
+            if (obj.contains("\"x\":")) {
+                int x = extractInt(obj, "\"x\":");
+                int y = extractInt(obj, "\"y\":");
+                String lookDirectionStr = obj.contains("\"lookDirection\":") ? extractString(obj, "\"lookDirection\":") : "east";
+                float lookDistance = extractFloatWithDefault(obj, "\"lookDistance\":", 300f);
+                int health = extractIntWithDefault(obj, "\"health\":", 30);
+                float firingSpeed = extractFloatWithDefault(obj, "\"firingSpeed\":", 2f);
+                Direction lookDirection = parseFacingDirection(lookDirectionStr);
+                Mortar mortar = new Mortar(x, y, lookDirection, lookDistance, health, firingSpeed);
+                mapData.mortars.add(mortar);
             }
         }
     }
@@ -215,6 +247,22 @@ public class MapLoader {
         int x = extractInt(section, "\"x\":");
         int y = extractInt(section, "\"y\":");
         mapData.player = new Player(x, y);
+    }
+    
+    private static int extractIntWithDefault(String json, String key, int defaultValue) {
+        try {
+            return extractInt(json, key);
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+    
+    private static float extractFloatWithDefault(String json, String key, float defaultValue) {
+        try {
+            return extractFloat(json, key);
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
     
     private static int extractInt(String text, String key) {

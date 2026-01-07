@@ -18,7 +18,11 @@ public class GunTurret extends EnemyObject implements Shooter, Trackable, Positi
     private long lastDamageTime = 0;
     
     public GunTurret(float x, float y) {
-        super(x, y, 100);
+        this(x, y, 100); // Default health
+    }
+    
+    public GunTurret(float x, float y, int health) {
+        super(x, y, health);
         this.facingDirection = Direction.UP;
         this.lastShotTime = System.currentTimeMillis();
         this.lastDirectionChange = System.currentTimeMillis();

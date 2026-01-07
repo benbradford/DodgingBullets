@@ -16,12 +16,16 @@ public class LevelData {
     public static class TurretData {
         public int x;
         public int y;
+        public int health = 100;  // Default health
+        public float speed = 0;   // Turrets don't move
     }
 
     public static class BearData {
         public int x;
         public int y;
         public String facing;
+        public int health = 100;    // Default health
+        public float speed = 150f;  // Default speed
     }
 
     public static class FoliageData {
@@ -46,6 +50,8 @@ public class LevelData {
         public int x;
         public int y;
         public String facing;
+        public int health = 100;    // Default health
+        public float speed = 100f;  // Default speed
     }
 
     public static class PlayerData {

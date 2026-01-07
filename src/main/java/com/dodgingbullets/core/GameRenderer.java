@@ -6,6 +6,7 @@ import com.dodgingbullets.gameobjects.effects.PetrolBomb;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.enemies.Thrower;
+import com.dodgingbullets.gameobjects.enemies.Mortar;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import java.util.ArrayList;
@@ -28,7 +29,9 @@ public class GameRenderer {
     private Map<String, Texture> explosionTextures;
     private Map<String, Texture> bearTextures = new HashMap<>();
     private Map<String, Texture> throwerTextures = new HashMap<>();
+    private Map<String, Texture> mortarTextures = new HashMap<>();
     private Texture petrolBombTexture;
+    private Texture bombTexture;
     
     public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
@@ -36,7 +39,7 @@ public class GameRenderer {
                            Map<String, Texture> explosionTextures, 
                            Texture ammoFullTexture, Texture ammoEmptyTexture, Texture grenadeTexture,
                            Map<String, Texture> bearTextures, Map<String, Texture> throwerTextures, 
-                           Texture petrolBombTexture) {
+                           Map<String, Texture> mortarTextures, Texture petrolBombTexture, Texture bombTexture) {
         this.turretTextures = turretTextures;
         this.grassTexture = grassTexture;
         this.shadowTexture = shadowTexture;
@@ -51,7 +54,9 @@ public class GameRenderer {
         this.explosionTextures = explosionTextures;
         this.bearTextures = bearTextures;
         this.throwerTextures = throwerTextures;
+        this.mortarTextures = mortarTextures;
         this.petrolBombTexture = petrolBombTexture;
+        this.bombTexture = bombTexture;
     }
     
     public void render(Renderer renderer, GameLoop gameLoop) {
@@ -116,6 +121,21 @@ public class GameRenderer {
             renderer.renderRotatedWithAlpha(petrolBombTexture, bombX - bombSize/2, bombY - bombSize/2, bombSize, bombSize, bomb.getRotation(), 1.0f);
         }
         
+        // Render mortar bombs
+        for (Bomb bomb : gameLoop.getBombs()) {
+            // Render shadow on ground
+            float shadowX = bomb.getShadowPosition().x() - cameraX;
+            float shadowY = bomb.getShadowPosition().y() - cameraY;
+            float bombShadowSize = 20;
+            renderer.renderTextureWithColor(shadowTexture, shadowX - bombShadowSize/2, shadowY - bombShadowSize/2, bombShadowSize, bombShadowSize, 0.0f, 0.0f, 0.0f, 0.6f);
+            
+            // Render bomb in air
+            float bombX = bomb.getPosition().x() - cameraX;
+            float bombY = bomb.getPosition().y() - cameraY + bomb.getHeight();
+            float bombSize = 24;
+            renderer.render(bombTexture, bombX - bombSize/2, bombY - bombSize/2, bombSize, bombSize);
+        }
+        
         // Render explosions on top of everything
         for (Explosion explosion : gameLoop.getExplosions()) {
             String textureName = explosion.getCurrentTexture();
@@ -172,7 +192,10 @@ public class GameRenderer {
                 } else if (gameObj instanceof Thrower) {
                     Thrower thrower = (Thrower) gameObj;
                     renderThrower(renderer, thrower, cameraX, cameraY);
-                } else if (gameObj instanceof Trackable && gameObj instanceof Damageable) {
+                } else if (gameObj instanceof Mortar) {
+                    Mortar mortar = (Mortar) gameObj;
+                    renderMortar(renderer, mortar, cameraX, cameraY);
+                } else if (gameObj instanceof Trackable && gameObj instanceof Damageable && !(gameObj instanceof Mortar)) {
                     Trackable trackable = (Trackable) gameObj;
                     Damageable damageable = (Damageable) gameObj;
                     Texture turretTexture = damageable.isDestroyed() ? brokenTurretTexture : 
@@ -325,6 +348,44 @@ public class GameRenderer {
         }
     }
     
+    private void renderMortar(Renderer renderer, Mortar mortar, float cameraX, float cameraY) {
+        String textureKey = getMortarTextureKey(mortar);
+        Texture mortarTexture = mortarTextures.get(textureKey);
+        
+        if (mortarTexture == null) {
+            System.err.println("Missing mortar texture: " + textureKey + " - using turret texture as fallback");
+            System.err.println("Available keys: " + mortarTextures.keySet());
+            // Use turret texture as fallback
+            mortarTexture = turretTextures.get(mortar.getLookDirection());
+        }
+        
+        if (mortarTexture != null) {
+            if (mortar.shouldFlash()) {
+                renderer.renderTextureWithColor(mortarTexture, mortar.getX() - 32 - cameraX, mortar.getY() - 32 - cameraY, 64, 64, 1.0f, 0.0f, 0.0f, 1.0f);
+            } else {
+                renderer.render(mortarTexture, mortar.getX() - 32 - cameraX, mortar.getY() - 32 - cameraY, 64, 64);
+            }
+        }
+    }
+    
+    private String getMortarTextureKey(Mortar mortar) {
+        Mortar.MortarState state = mortar.getState();
+        Direction direction = mortar.getLookDirection();
+        String directionStr = getDirectionString(direction);
+        
+        switch (state) {
+            case PATROL:
+                return "mortar_rotation_" + directionStr;
+            case ENGAGED:
+                return "mortar_sitting_" + directionStr + "_009";
+            case FIRING:
+                int frame = mortar.getCurrentFrame();
+                return "mortar_sitting_" + directionStr + "_" + String.format("%03d", frame + 1);
+            default:
+                return "mortar_rotation_" + directionStr;
+        }
+    }
+    
     private String getBearTextureKey(Bear bear) {
         Bear.BearState state = bear.getState();
         Direction direction = bear.getFacingDirection();
@@ -353,10 +414,10 @@ public class GameRenderer {
             case DOWN: return "south";
             case LEFT: return "west";
             case RIGHT: return "east";
-            case UP_LEFT: return "north-west";
-            case UP_RIGHT: return "north-east";
-            case DOWN_LEFT: return "south-west";
-            case DOWN_RIGHT: return "south-east";
+            case UP_LEFT: return "northwest";
+            case UP_RIGHT: return "northeast";
+            case DOWN_LEFT: return "southwest";
+            case DOWN_RIGHT: return "southeast";
             default: return "east";
         }
     }

@@ -38,7 +38,9 @@ public class Game {
     private Map<String, Texture> foliageTextures = new HashMap<>();
     private Map<String, Texture> bearTextures = new HashMap<>();
     private Map<String, Texture> throwerTextures = new HashMap<>();
+    private Map<String, Texture> mortarTextures = new HashMap<>();
     private Texture petrolBombTexture;
+    private Texture bombTexture;
     private boolean[] keys = new boolean[5]; // W, A, S, D, R
     private boolean jumpPressed = false;
     private boolean jumpHeld = false;
@@ -104,7 +106,7 @@ public class Game {
         gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                  explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
-                                 bearTextures, throwerTextures, petrolBombTexture);
+                                 bearTextures, throwerTextures, mortarTextures, petrolBombTexture, bombTexture);
         
         // Initialize state machine
         stateManager = new StateManager();
@@ -117,7 +119,7 @@ public class Game {
             gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
                                    shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                    explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
-                                   bearTextures, throwerTextures, petrolBombTexture);
+                                   bearTextures, throwerTextures, mortarTextures, petrolBombTexture, bombTexture);
         };
         
         // Create states - we'll set the circular reference after
@@ -231,8 +233,14 @@ public class Game {
         // Load thrower textures
         loadThrowerTextures();
         
+        // Load mortar textures
+        loadMortarTextures();
+        
         // Load petrol bomb texture
         petrolBombTexture = renderer.loadTexture("assets/petrol_bomb.png");
+        
+        // Load bomb texture
+        bombTexture = renderer.loadTexture("assets/bomb.png");
     }
     
     private void loadBearTextures() {
@@ -253,30 +261,33 @@ public class Game {
         }
         
         // Load running animations for all 8 directions
-        String[] directions = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
-        for (String dir : directions) {
+        String[] fileDirs = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+        String[] keyDirs = {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"};
+        for (int d = 0; d < fileDirs.length; d++) {
             for (int i = 0; i <= 3; i++) {
-                bearTextures.put("bear_running_" + dir + "_" + String.format("%03d", i), 
-                    renderer.loadTexture("assets/bear/animations/running/" + dir + "/frame_" + String.format("%03d", i) + ".png"));
+                bearTextures.put("bear_running_" + keyDirs[d] + "_" + String.format("%03d", i), 
+                    renderer.loadTexture("assets/bear/animations/running/" + fileDirs[d] + "/frame_" + String.format("%03d", i) + ".png"));
             }
         }
         
         // Load hit animations for all 8 directions
-        for (String dir : directions) {
+        for (int d = 0; d < fileDirs.length; d++) {
             for (int i = 0; i <= 11; i++) {
-                bearTextures.put("bear_hit_" + dir + "_" + String.format("%03d", i), 
-                    renderer.loadTexture("assets/bear/animations/hit/" + dir + "/frame_" + String.format("%03d", i) + ".png"));
+                bearTextures.put("bear_hit_" + keyDirs[d] + "_" + String.format("%03d", i), 
+                    renderer.loadTexture("assets/bear/animations/hit/" + fileDirs[d] + "/frame_" + String.format("%03d", i) + ".png"));
             }
         }
     }
     
     private void loadThrowerTextures() {
         // Load rotation textures (idle, hit, dying states)
-        String[] directions = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
-        for (String dir : directions) {
-            String path = "assets/thrower/rotations/" + dir + ".png";
+        String[] fileDirs = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+        String[] keyDirs = {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"};
+        
+        for (int i = 0; i < fileDirs.length; i++) {
+            String path = "assets/thrower/rotations/" + fileDirs[i] + ".png";
             try {
-                throwerTextures.put("thrower_rotation_" + dir, renderer.loadTexture(path));
+                throwerTextures.put("thrower_rotation_" + keyDirs[i], renderer.loadTexture(path));
             } catch (Exception e) {
                 System.err.println("Failed to load texture: " + path);
                 throw e;
@@ -284,11 +295,11 @@ public class Game {
         }
         
         // Load walking animations for all 8 directions (4 frames each)
-        for (String dir : directions) {
-            for (int i = 0; i <= 3; i++) {
-                String path = "assets/thrower/animations/walking/" + dir + "/frame_" + String.format("%03d", i) + ".png";
+        for (int i = 0; i < fileDirs.length; i++) {
+            for (int frame = 0; frame <= 3; frame++) {
+                String path = "assets/thrower/animations/walking/" + fileDirs[i] + "/frame_" + String.format("%03d", frame) + ".png";
                 try {
-                    throwerTextures.put("thrower_walking_" + dir + "_" + String.format("%03d", i), renderer.loadTexture(path));
+                    throwerTextures.put("thrower_walking_" + keyDirs[i] + "_" + String.format("%03d", frame), renderer.loadTexture(path));
                 } catch (Exception e) {
                     System.err.println("Failed to load texture: " + path);
                     throw e;
@@ -297,14 +308,41 @@ public class Game {
         }
         
         // Load throwing animations for all 8 directions (6 frames each)
-        for (String dir : directions) {
-            for (int i = 0; i <= 6; i++) {
-                String path = "assets/thrower/animations/throw/" + dir + "/frame_" + String.format("%03d", i) + ".png";
+        for (int i = 0; i < fileDirs.length; i++) {
+            for (int frame = 0; frame <= 6; frame++) {
+                String path = "assets/thrower/animations/throw/" + fileDirs[i] + "/frame_" + String.format("%03d", frame) + ".png";
                 try {
-                    throwerTextures.put("thrower_throw_" + dir + "_" + String.format("%03d", i), renderer.loadTexture(path));
+                    throwerTextures.put("thrower_throw_" + keyDirs[i] + "_" + String.format("%03d", frame), renderer.loadTexture(path));
                 } catch (Exception e) {
                     System.err.println("Failed to load texture: " + path);
                     throw e;
+                }
+            }
+        }
+    }
+    
+    private void loadMortarTextures() {
+        String[] fileDirs = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+        String[] keyDirs = {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"};
+        
+        // Load rotation textures (patrol state)
+        for (int i = 0; i < fileDirs.length; i++) {
+            String path = "assets/mortar/rotations/" + fileDirs[i] + ".png";
+            try {
+                mortarTextures.put("mortar_rotation_" + keyDirs[i], renderer.loadTexture(path));
+            } catch (Exception e) {
+                System.err.println("Failed to load mortar texture: " + path + " - skipping");
+            }
+        }
+        
+        // Load sitting animation frames (engaged and firing states)
+        for (int i = 0; i < fileDirs.length; i++) {
+            for (int frame = 0; frame <= 8; frame++) {
+                String path = "assets/mortar/animations/sitting/" + fileDirs[i] + "/frame_" + String.format("%03d", frame) + ".png";
+                try {
+                    mortarTextures.put("mortar_sitting_" + keyDirs[i] + "_" + String.format("%03d", frame + 1), renderer.loadTexture(path));
+                } catch (Exception e) {
+                    System.err.println("Failed to load mortar texture: " + path + " - skipping");
                 }
             }
         }

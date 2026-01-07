@@ -4,6 +4,7 @@ import com.dodgingbullets.gameobjects.*;
 import com.dodgingbullets.gameobjects.enemies.GunTurret;
 import com.dodgingbullets.gameobjects.enemies.Bear;
 import com.dodgingbullets.gameobjects.enemies.Thrower;
+import com.dodgingbullets.gameobjects.enemies.Mortar;
 import com.dodgingbullets.gameobjects.environment.Foliage;
 import com.dodgingbullets.gameobjects.environment.AmmoPowerUp;
 import com.dodgingbullets.gameobjects.effects.PetrolBomb;
@@ -40,6 +41,10 @@ public class GameObjectFactory {
         return new ArrayList<>(mapData.throwers);
     }
     
+    public static List<GameObject> createMortars() {
+        return new ArrayList<>(mapData.mortars);
+    }
+    
     public static Player createPlayer() {
         return mapData.player;
     }
@@ -57,13 +62,16 @@ public class GameObjectFactory {
     }
     
     // Individual creation methods for editor
-    public static GameObject createTurret(float x, float y) {
-        return new GunTurret(x, y);
+    public static GameObject createTurret(float x, float y, int health) {
+        GunTurret turret = new GunTurret(x, y, health);
+        return turret;
     }
     
-    public static GameObject createBear(float x, float y, String facing) {
+    public static GameObject createBear(float x, float y, String facing, int health, float speed) {
         Direction direction = "west".equals(facing) ? Direction.LEFT : Direction.RIGHT;
-        return new Bear(x, y, direction);
+        Bear bear = new Bear(x, y, direction, health, speed);
+        // TODO: Add setHealth and setSpeed methods to Bear
+        return bear;
     }
     
     public static GameObject createFoliage(float x, float y, String textureKey) {
@@ -82,8 +90,10 @@ public class GameObjectFactory {
         return new AmmoPowerUp(x, y);
     }
     
-    public static GameObject createThrower(float x, float y) {
+    public static GameObject createThrower(float x, float y, int health, float speed) {
         // For editor, create with minimal parameters
-        return new Thrower(x, y, Direction.RIGHT, new ArrayList<>(), new ArrayList<>());
+        Thrower thrower = new Thrower(x, y, Direction.RIGHT, new ArrayList<>(), new ArrayList<>(), health, speed);
+        // TODO: Add setHealth and setSpeed methods to Thrower
+        return thrower;
     }
 }

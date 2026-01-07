@@ -1,5 +1,15 @@
 # DodgingBullets Project Steering Guide
 
+## Critical Asset Management Rule
+**NEVER create, copy, move, rename, or delete asset files unless explicitly requested by the user.**
+
+Assets include all files in the `assets/` directory: textures (.png, .jpg), audio (.wav, .mp3), models, etc.
+
+When implementing features requiring assets:
+1. Reference asset paths in code only
+2. Let the user provide the actual asset files
+3. Ask permission before creating any placeholder assets
+
 ## Project Overview
 DodgingBullets is a 2D top-down Java game built with LWJGL/OpenGL featuring:
 - Player character with 8-directional movement and mouse-controlled shooting

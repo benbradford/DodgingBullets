@@ -53,7 +53,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
     // Constants
     private static final float SIGHT_RANGE = 350f;
     private static final float THROW_RANGE = 150f;
-    private static final float MOVE_SPEED = 120f;
+    private final float moveSpeed;
     private static final float KNOCKBACK_FORCE = 100f;
     private static final float FRICTION = 0.85f;
     private static final float ROTATION_FRICTION = 0.95f;
@@ -63,8 +63,13 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
     private static final float ZIGZAG_CHANGE_INTERVAL = 1.5f;
     
     public Thrower(float x, float y, Direction initialDirection, List<GameObject> collidableObjects, List<PetrolBomb> petrolBombs) {
-        super(x, y, 50); // 50 health
+        this(x, y, initialDirection, collidableObjects, petrolBombs, 100, 120f); // Default values
+    }
+    
+    public Thrower(float x, float y, Direction initialDirection, List<GameObject> collidableObjects, List<PetrolBomb> petrolBombs, int health, float speed) {
+        super(x, y, health);
         this.facingDirection = initialDirection;
+        this.moveSpeed = speed;
         this.collidableObjects = collidableObjects != null ? collidableObjects : new ArrayList<>();
         this.petrolBombs = petrolBombs != null ? petrolBombs : new ArrayList<>();
     }
@@ -220,7 +225,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
         
         if (distance > 0) {
             Vec2 normalizedDirection = direction.multiply(1.0f / distance);
-            Vec2 newVelocity = normalizedDirection.multiply(MOVE_SPEED);
+            Vec2 newVelocity = normalizedDirection.multiply(moveSpeed);
             Vec2 newPosition = position.add(newVelocity.multiply(deltaTime));
             
             // Check if direct path is blocked
@@ -238,7 +243,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                         zigzagDirection = zigzagDirection.multiply(1.0f / zigzagDistance);
                     }
                     
-                    Vec2 zigzagVelocity = zigzagDirection.multiply(MOVE_SPEED);
+                    Vec2 zigzagVelocity = zigzagDirection.multiply(moveSpeed);
                     Vec2 zigzagPosition = position.add(zigzagVelocity.multiply(deltaTime));
                     
                     // Use zigzag movement if not blocked, otherwise fall back to direct
@@ -270,8 +275,8 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                         yOnlyDirection = yOnlyDirection.multiply(1.0f / Math.abs(normalizedDirection.y()));
                     }
                     
-                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(MOVE_SPEED * 0.5f * deltaTime));
-                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(MOVE_SPEED * 0.5f * deltaTime));
+                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(moveSpeed * 0.5f * deltaTime));
+                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(moveSpeed * 0.5f * deltaTime));
                     
                     boolean xBlocked = isPositionBlocked(xTestPos);
                     boolean yBlocked = isPositionBlocked(yTestPos);
@@ -290,7 +295,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                             new Vec2(1, 0), new Vec2(-1, 0), new Vec2(0, 1), new Vec2(0, -1)
                         };
                         for (Vec2 testDir : perpendiculars) {
-                            Vec2 testPos = position.add(testDir.multiply(MOVE_SPEED * 0.5f * deltaTime));
+                            Vec2 testPos = position.add(testDir.multiply(moveSpeed * 0.5f * deltaTime));
                             if (!isPositionBlocked(testPos)) {
                                 bestDirection = testDir;
                                 break;
@@ -307,7 +312,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                 
                 // Try random movement if we have a valid direction
                 if (randomDirection.distance(new Vec2(0, 0)) > 0) {
-                    Vec2 randomVelocity = randomDirection.multiply(MOVE_SPEED * 0.5f);
+                    Vec2 randomVelocity = randomDirection.multiply(moveSpeed * 0.5f);
                     Vec2 randomNewPosition = position.add(randomVelocity.multiply(deltaTime));
                     
                     if (!isPositionBlocked(randomNewPosition)) {
@@ -326,7 +331,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
         
         if (distance > 0) {
             Vec2 normalizedDirection = direction.multiply(1.0f / distance);
-            Vec2 newVelocity = normalizedDirection.multiply(MOVE_SPEED * 1.5f);
+            Vec2 newVelocity = normalizedDirection.multiply(moveSpeed * 1.5f);
             Vec2 newPosition = position.add(newVelocity.multiply(deltaTime));
             
             // Check if direct path is blocked
@@ -348,8 +353,8 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                         yOnlyDirection = yOnlyDirection.multiply(1.0f / Math.abs(normalizedDirection.y()));
                     }
                     
-                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(MOVE_SPEED * 1.5f * 0.5f * deltaTime));
-                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(MOVE_SPEED * 1.5f * 0.5f * deltaTime));
+                    Vec2 xTestPos = position.add(xOnlyDirection.multiply(moveSpeed * 1.5f * 0.5f * deltaTime));
+                    Vec2 yTestPos = position.add(yOnlyDirection.multiply(moveSpeed * 1.5f * 0.5f * deltaTime));
                     
                     boolean xBlocked = isPositionBlocked(xTestPos);
                     boolean yBlocked = isPositionBlocked(yTestPos);
@@ -365,7 +370,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                             new Vec2(1, 0), new Vec2(-1, 0), new Vec2(0, 1), new Vec2(0, -1)
                         };
                         for (Vec2 testDir : perpendiculars) {
-                            Vec2 testPos = position.add(testDir.multiply(MOVE_SPEED * 1.5f * 0.5f * deltaTime));
+                            Vec2 testPos = position.add(testDir.multiply(moveSpeed * 1.5f * 0.5f * deltaTime));
                             if (!isPositionBlocked(testPos)) {
                                 bestDirection = testDir;
                                 break;
@@ -382,7 +387,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
                 
                 // Try random movement if we have a valid direction
                 if (randomDirection.distance(new Vec2(0, 0)) > 0) {
-                    Vec2 randomVelocity = randomDirection.multiply(MOVE_SPEED * 1.5f * 0.5f);
+                    Vec2 randomVelocity = randomDirection.multiply(moveSpeed * 1.5f * 0.5f);
                     Vec2 randomNewPosition = position.add(randomVelocity.multiply(deltaTime));
                     
                     if (!isPositionBlocked(randomNewPosition)) {
