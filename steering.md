@@ -419,6 +419,60 @@ src/main/java/com/dodgingbullets/
 - **Special Mechanics**: Implement temporary power-ups that modify player behavior (special bullets, rapid fire)
 - **Visual Feedback**: Use flashing UI elements to indicate special states
 
+### Enemy Implementation Lessons (Mortar Development)
+
+#### Rendering Order Issues
+- **Interface Hierarchy**: Enemies implementing multiple interfaces (Trackable, Damageable) can be caught by generic rendering code
+- **Solution**: Place specific enemy checks (instanceof Mortar) BEFORE generic interface checks (instanceof Trackable && Damageable)
+- **Pattern**: Always check most specific types first, then fall back to generic interface checks
+
+#### Texture Loading and Direction Mapping
+- **Critical Issue**: Asset file paths use hyphens ("north-east") but `getDirectionString()` returns without hyphens ("northeast")
+- **Root Cause**: Inconsistency between file naming convention and direction string generation
+- **Solution**: Use separate arrays for file paths and texture keys:
+  ```java
+  String[] fileDirs = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
+  String[] keyDirs = {"north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"};
+  ```
+- **Prevention**: Always verify `getDirectionString()` output matches texture key format before implementing new enemies
+
+#### Collision System Integration
+- **Missing Interface**: New enemies must implement `Positionable` interface for bullet collision detection
+- **Required Methods**: `getBarrelPosition()` (returns float[]) and `isInSpriteHitbox(float x, float y)`
+- **Method Signature**: Ensure `getBarrelPosition()` returns `float[]` not `Vec2` for Positionable interface
+- **Collision After Death**: Add `if (!active) return false;` to collision methods to prevent interaction with dead enemies
+
+#### Object Lifecycle Management
+- **Destruction Pattern**: Override `takeDamage()` to set `active = false` when health <= 0
+- **Cleanup**: Add `gameObjects.removeIf(gameObject -> !gameObject.isActive())` to remove dead objects
+- **Timing**: Remove inactive objects after all updates to prevent concurrent modification
+
+#### Projectile Physics
+- **Trajectory Issues**: Bomb rendering Y-coordinate calculation affects visual trajectory
+- **Correct Formula**: `bomb.getPosition().y() - cameraY + bomb.getHeight()` for upward arc
+- **Initial Height**: Use reasonable starting height (20px) to appear launched from enemy position
+- **Rate Limiting**: Use boolean flags (`hasFired`) to prevent multiple projectiles per animation cycle
+
+#### State Machine Implementation
+- **State Transitions**: Ensure proper state initialization (reset timers, frames, flags)
+- **Animation Frames**: Match frame counts with available assets (0-8 for 9 frames)
+- **Firing Logic**: Use specific frame number for projectile launch timing
+- **State Persistence**: Reset firing flags when transitioning between states
+
+#### Debug Strategies
+- **Texture Loading**: Add error logging with fallback textures for missing assets
+- **Collision Detection**: Add debug output to verify collision methods are being called
+- **Object Removal**: Temporarily log object removal to confirm cleanup is working
+- **Rendering Issues**: Check rendering order and interface implementation completeness
+
+#### Best Practices for Future Enemies
+1. **Plan Interface Requirements**: Identify all needed interfaces before implementation
+2. **Verify Texture Paths**: Ensure asset paths match `getDirectionString()` output format
+3. **Test Collision Early**: Implement and test `Positionable` interface immediately
+4. **Handle Death Properly**: Always set `active = false` and implement collision checks
+5. **Use Consistent Patterns**: Follow existing enemy implementations (Bear, Thrower) for reference
+6. **Test Rendering Order**: Verify enemy appears correctly and isn't caught by generic rendering code
+
 ## Coordinate Systems & Screen Space
 
 ### Window vs Screen Coordinates

@@ -6,6 +6,7 @@ public class LevelData {
     public String backgroundTexture;
     public int mapWidth;
     public int mapHeight;
+    public String[][] mapGrid;
     public List<TurretData> turrets;
     public List<BearData> bears;
     public List<FoliageData> foliage;

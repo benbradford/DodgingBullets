@@ -42,8 +42,16 @@ public class MapLoader {
     private static LevelData createDefaultLevel() {
         LevelData level = new LevelData();
         level.backgroundTexture = "vibrant_random_grass.png";
-        level.mapWidth = 2560;
-        level.mapHeight = 1440;
+        level.mapWidth = 768;
+        level.mapHeight = 512;
+        
+        // Initialize default 6x4 grid
+        level.mapGrid = new String[4][6];
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 6; x++) {
+                level.mapGrid[y][x] = "floorgrey1.png";
+            }
+        }
         
         // Initialize empty lists
         level.turrets = new java.util.ArrayList<>();

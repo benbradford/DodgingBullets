@@ -49,8 +49,8 @@ public class GameObjectFactory {
         return mapData.player;
     }
     
-    public static String getBackgroundTexture() {
-        return mapData.backgroundTexture;
+    public static String[][] getMapGrid() {
+        return mapData.mapGrid;
     }
     
     public static float getMapWidth() {

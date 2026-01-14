@@ -26,4 +26,5 @@ public class GameConfig {
     // Rendering constants
     public static final float TARGET_FPS = 60.0f;
     public static final float DELTA_TIME = 1.0f / TARGET_FPS;
+    public static final int BACKGROUND_TILE_SIZE = 256; // Size of each background tile
 }

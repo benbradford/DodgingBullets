@@ -1,7 +1,9 @@
 {
-  "backgroundTexture": "vibrant_random_grass.png",
-  "mapWidth": 800,
-  "mapHeight": 500,
+  "mapGrid": [
+    ["floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png"],
+    ["floorgrey2.png", "floorgrey1.png", "floorgrey6.png", "floorgrey5.png"],
+    ["floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png"]
+  ],
   "turrets": [
     {"x": 600, "y": 250},
     {"x": 200, "y": 350}

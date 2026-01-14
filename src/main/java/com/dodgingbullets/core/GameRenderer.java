@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class GameRenderer {
     private Map<Direction, Texture> turretTextures;
-    private Texture grassTexture;
+    private Map<String, Texture> tileTextures = new HashMap<>();
     private Texture shadowTexture;
     private Texture bulletTexture;
     private Texture shellTexture;
@@ -33,7 +33,7 @@ public class GameRenderer {
     private Texture petrolBombTexture;
     private Texture bombTexture;
     
-    public void setTextures(Map<Direction, Texture> turretTextures, Texture grassTexture, 
+    public void setTextures(Map<Direction, Texture> turretTextures, Map<String, Texture> tileTextures, 
                            Texture shadowTexture, Texture bulletTexture, Texture shellTexture,
                            Texture brokenTurretTexture, Texture vignetteTexture, Map<String, Texture> foliageTextures,
                            Map<String, Texture> explosionTextures, 
@@ -41,7 +41,7 @@ public class GameRenderer {
                            Map<String, Texture> bearTextures, Map<String, Texture> throwerTextures, 
                            Map<String, Texture> mortarTextures, Texture petrolBombTexture, Texture bombTexture) {
         this.turretTextures = turretTextures;
-        this.grassTexture = grassTexture;
+        this.tileTextures = tileTextures;
         this.shadowTexture = shadowTexture;
         this.bulletTexture = bulletTexture;
         this.shellTexture = shellTexture;
@@ -271,8 +271,28 @@ public class GameRenderer {
     }
     
     private void renderTiledBackground(Renderer renderer, float cameraX, float cameraY, float mapWidth, float mapHeight) {
-        // Render single large background texture covering entire map
-        renderer.render(grassTexture, -cameraX, -cameraY, mapWidth, mapHeight);
+        String[][] mapGrid = GameObjectFactory.getMapGrid();
+        int tileSize = 128; // Fixed 128x128 tile size
+        
+        // Calculate visible tile range based on camera position
+        int startTileX = Math.max(0, (int)(cameraX / tileSize));
+        int startTileY = Math.max(0, (int)(cameraY / tileSize));
+        int endTileX = Math.min(mapGrid[0].length - 1, (int)Math.ceil((cameraX + GameConfig.SCREEN_WIDTH) / tileSize));
+        int endTileY = Math.min(mapGrid.length - 1, (int)Math.ceil((cameraY + GameConfig.SCREEN_HEIGHT) / tileSize));
+        
+        // Render tiles from the grid
+        for (int tileX = startTileX; tileX <= endTileX; tileX++) {
+            for (int tileY = startTileY; tileY <= endTileY; tileY++) {
+                String tileTextureName = mapGrid[tileY][tileX];
+                Texture tileTexture = tileTextures.get(tileTextureName);
+                
+                if (tileTexture != null) {
+                    float x = tileX * tileSize - cameraX;
+                    float y = tileY * tileSize - cameraY;
+                    renderer.render(tileTexture, x, y, tileSize, tileSize);
+                }
+            }
+        }
     }
     
     private void renderBear(Renderer renderer, Bear bear, float cameraX, float cameraY) {
@@ -289,6 +309,9 @@ public class GameRenderer {
             if (bear.getState() == Bear.BearState.DYING) {
                 // Render with fade effect and rotation
                 renderer.renderRotatedWithAlpha(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64, rotation, alpha);
+            } else if (bear.shouldFlash()) {
+                // Flash red for damage
+                renderer.renderTextureWithColor(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64, 1.0f, 0.0f, 0.0f, 1.0f);
             } else {
                 // Normal rendering
                 renderer.render(bearTexture, bear.getX() - 32 - cameraX, bear.getY() - 32 - cameraY, 64, 64);
@@ -318,6 +341,9 @@ public class GameRenderer {
             if (thrower.getState() == Thrower.ThrowerState.DYING) {
                 // Render with fade effect and rotation
                 renderer.renderRotatedWithAlpha(throwerTexture, thrower.getX() - 32 - cameraX, thrower.getY() - 32 - cameraY, 64, 64, rotation, alpha);
+            } else if (thrower.shouldFlash()) {
+                // Flash red for damage
+                renderer.renderTextureWithColor(throwerTexture, thrower.getX() - 32 - cameraX, thrower.getY() - 32 - cameraY, 64, 64, 1.0f, 0.0f, 0.0f, 1.0f);
             } else {
                 // Normal rendering
                 renderer.render(throwerTexture, thrower.getX() - 32 - cameraX, thrower.getY() - 32 - cameraY, 64, 64);

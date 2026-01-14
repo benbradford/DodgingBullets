@@ -14,9 +14,9 @@ import java.util.*;
 public class MapLoader {
     
     public static class MapData {
-        public String backgroundTexture = "vibrant_random_grass.png"; // default
-        public float mapWidth = 2560; // default
-        public float mapHeight = 1440; // default
+        public String[][] mapGrid = {{"floorgrey6.png"}}; // default 1x1 grid
+        public float mapWidth = 128; // calculated from grid
+        public float mapHeight = 128; // calculated from grid
         public List<GameObject> turrets = new ArrayList<>();
         public List<GameObject> foliage = new ArrayList<>();
         public List<GameObject> ammoPowerUps = new ArrayList<>();
@@ -49,17 +49,10 @@ public class MapLoader {
     }
     
     private static void parseJson(String json, MapData mapData) {
-        // Extract background texture
-        if (json.contains("\"backgroundTexture\":")) {
-            mapData.backgroundTexture = extractString(json, "\"backgroundTexture\":");
-        }
-        
-        // Extract map dimensions
-        if (json.contains("\"mapWidth\":")) {
-            mapData.mapWidth = extractFloat(json, "\"mapWidth\":");
-        }
-        if (json.contains("\"mapHeight\":")) {
-            mapData.mapHeight = extractFloat(json, "\"mapHeight\":");
+        // Extract map grid
+        if (json.contains("\"mapGrid\":")) {
+            String mapGridSection = extractSection(json, "\"mapGrid\":");
+            parseMapGrid(mapGridSection, mapData);
         }
         
         // Parse each section by finding its specific key
@@ -132,6 +125,38 @@ public class MapLoader {
         }
         
         return "";
+    }
+    
+    private static void parseMapGrid(String section, MapData mapData) {
+        // Remove brackets and split by rows
+        String content = section.substring(1, section.length() - 1).trim();
+        String[] rows = content.split("\\],\\s*\\[");
+        
+        // Clean up first and last row brackets
+        if (rows.length > 0) {
+            rows[0] = rows[0].replaceFirst("^\\[", "");
+            rows[rows.length - 1] = rows[rows.length - 1].replaceFirst("\\]$", "");
+        }
+        
+        mapData.mapGrid = new String[rows.length][];
+        
+        for (int i = 0; i < rows.length; i++) {
+            String[] tiles = rows[i].split(",");
+            mapData.mapGrid[i] = new String[tiles.length];
+            
+            for (int j = 0; j < tiles.length; j++) {
+                String tile = tiles[j].trim();
+                // Remove quotes
+                if (tile.startsWith("\"") && tile.endsWith("\"")) {
+                    tile = tile.substring(1, tile.length() - 1);
+                }
+                mapData.mapGrid[i][j] = tile;
+            }
+        }
+        
+        // Calculate map dimensions from grid
+        mapData.mapHeight = mapData.mapGrid.length * 128;
+        mapData.mapWidth = mapData.mapGrid[0].length * 128;
     }
     
     private static void parseTurrets(String section, MapData mapData) {
@@ -299,7 +324,12 @@ public class MapLoader {
     private static MapData createDefaultMap() {
         // Fallback to original hardcoded values
         MapData mapData = new MapData();
-        mapData.backgroundTexture = "vibrant_random_grass.png";
+        mapData.mapGrid = new String[][]{
+            {"floorgrey1.png", "floorgrey2.png", "floorgrey3.png"},
+            {"floorgrey4.png", "floorgrey5.png", "floorgrey6.png"}
+        };
+        mapData.mapWidth = 3 * 128;
+        mapData.mapHeight = 2 * 128;
         
         // Hardcoded turrets
         mapData.turrets.add(new GunTurret(800, 150));

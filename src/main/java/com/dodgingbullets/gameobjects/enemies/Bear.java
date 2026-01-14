@@ -51,6 +51,12 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
     private static final int DAMAGE_PER_SECOND = 20;
     private static final float WAKEUP_DURATION = 0.9f; // 6 frames * 0.15s
     private static final float HIT_DURATION = 0.825f; // 11 frames * 0.075s
+    private float damageFlashTimer = 0f;
+    public boolean shouldFlash() {
+        return damageFlashTimer > 0 && ((int)(damageFlashTimer * 20) % 2 == 0);
+    }
+    
+    private static final float DAMAGE_FLASH_DURATION = 0.3f;
     private static final float FADE_DURATION = 2.0f;
     
     public Bear(float x, float y) {
@@ -70,6 +76,10 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
     @Override
     public void update(float deltaTime) {
         if (!active) return;
+        
+        if (damageFlashTimer > 0) {
+            damageFlashTimer -= deltaTime;
+        }
         
         frameTimer += deltaTime;
         stateTimer += deltaTime;
@@ -404,6 +414,7 @@ public class Bear extends EnemyObject implements Trackable, Positionable {
         if (state == BearState.DYING) return;
         
         health -= damage;
+        damageFlashTimer = DAMAGE_FLASH_DURATION;
         
         // Check if this hit will kill the bear
         if (health <= 0) {

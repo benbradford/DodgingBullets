@@ -17,7 +17,7 @@ import java.util.Map;
 
 public class EditorState implements EditorGameState {
     public enum EditorMode {
-        SELECT, DELETE, PLACE, CONFIGURE
+        SELECT, DELETE, PLACE, CONFIGURE, GRID
     }
     
     public enum PlaceableType {
@@ -44,6 +44,21 @@ public class EditorState implements EditorGameState {
             this.renderOffset = renderOffset;
         }
     }
+    
+    public enum TileTextureType {
+        FLOORGREY1("floorgrey1.png"),
+        FLOORGREY2("floorgrey2.png"),
+        FLOORGREY3("floorgrey3.png"),
+        FLOORGREY4("floorgrey4.png"),
+        FLOORGREY5("floorgrey5.png"),
+        FLOORGREY6("floorgrey6.png");
+        
+        public final String fileName;
+        
+        TileTextureType(String fileName) {
+            this.fileName = fileName;
+        }
+    }
 
     private EditorStateManager stateManager;
     private Renderer renderer;
@@ -57,6 +72,10 @@ public class EditorState implements EditorGameState {
     private boolean showMapConfig = false;
     private boolean showEnemyConfig = false;
     private GameObject configuredEnemy = null;
+    
+    // Grid mode fields
+    private TileTextureType selectedTileTexture = TileTextureType.FLOORGREY1;
+    private int selectedGridX = -1, selectedGridY = -1;
     
     private static final String[] BACKGROUND_TEXTURES = {
         "vibrant_random_grass.png",
@@ -104,9 +123,11 @@ public class EditorState implements EditorGameState {
     public void render(Renderer renderer) {
         renderer.clear();
         
-        // Render background texture covering entire map
+        // Render background (grid or single texture)
         if (levelData != null) {
-            if (backgroundTexture != null) {
+            if (levelData.mapGrid != null) {
+                renderTileGrid();
+            } else if (backgroundTexture != null) {
                 // Render as single texture covering entire map (like the game)
                 float renderX = -cameraOffset.x() + GameConfig.SCREEN_WIDTH / 2;
                 float renderY = -cameraOffset.y() + GameConfig.SCREEN_HEIGHT / 2;
@@ -248,6 +269,9 @@ public class EditorState implements EditorGameState {
                 case CONFIGURE:
                     handleConfigureMode(worldPos);
                     break;
+                case GRID:
+                    handleGridMode(worldPos);
+                    break;
             }
         }
         
@@ -298,14 +322,18 @@ public class EditorState implements EditorGameState {
             currentMode = EditorMode.PLACE;
             return true;
         }
+        if (isPointInRect(mouseX, mouseY, 10, 150, 80, 30)) {
+            currentMode = EditorMode.GRID;
+            return true;
+        }
         
         // Placeable type buttons (only in PLACE mode)
         if (currentMode == EditorMode.PLACE) {
-            if (isPointInRect(mouseX, mouseY, 10, 150, 80, 30)) {
+            if (isPointInRect(mouseX, mouseY, 10, 100, 80, 30)) {
                 selectedPlaceableType = PlaceableType.TURRET;
                 return true;
             }
-            if (isPointInRect(mouseX, mouseY, 10, 100, 80, 30)) {
+            if (isPointInRect(mouseX, mouseY, 10, 50, 80, 30)) {
                 selectedPlaceableType = PlaceableType.BEAR;
                 return true;
             }
@@ -348,6 +376,27 @@ public class EditorState implements EditorGameState {
                     selectedFoliageTexture = FoliageTextureType.PALM_TREES_GROUP_VERTICAL_LONG;
                     return true;
                 }
+            }
+        }
+        
+        // Grid mode controls
+        if (currentMode == EditorMode.GRID) {
+            // Tile texture selection
+            for (int i = 0; i < TileTextureType.values().length; i++) {
+                if (isPointInRect(mouseX, mouseY, 10, 100 - i * 15, 100, 12)) {
+                    selectedTileTexture = TileTextureType.values()[i];
+                    return true;
+                }
+            }
+            
+            // Add row/column buttons
+            if (isPointInRect(mouseX, mouseY, 120, 100, 80, 20)) {
+                addGridRow();
+                return true;
+            }
+            if (isPointInRect(mouseX, mouseY, 120, 75, 80, 20)) {
+                addGridColumn();
+                return true;
             }
         }
         
@@ -448,9 +497,8 @@ public class EditorState implements EditorGameState {
     private void saveLevel() {
         try {
             LevelData saveData = new LevelData();
-            saveData.backgroundTexture = levelData.backgroundTexture;
-            saveData.mapWidth = levelData.mapWidth;
-            saveData.mapHeight = levelData.mapHeight;
+            saveData.mapGrid = levelData.mapGrid;
+            // Don't save backgroundTexture, mapWidth, mapHeight for grid-based levels
             
             // Initialize lists in the EXACT order expected by core MapLoader
             saveData.turrets = new ArrayList<>();
@@ -702,6 +750,7 @@ public class EditorState implements EditorGameState {
         renderModeButton(renderer, "DELETE", 10, 300, currentMode == EditorMode.DELETE);
         renderModeButton(renderer, "CONFIG", 10, 250, currentMode == EditorMode.CONFIGURE);
         renderModeButton(renderer, "PLACE", 10, 200, currentMode == EditorMode.PLACE);
+        renderModeButton(renderer, "GRID", 10, 150, currentMode == EditorMode.GRID);
         
         // Placeable type buttons (only show in PLACE mode)
         if (currentMode == EditorMode.PLACE) {
@@ -720,6 +769,24 @@ public class EditorState implements EditorGameState {
                 renderTextureButton(renderer, "palm_vert", 100, 30, selectedFoliageTexture == FoliageTextureType.PALM_TREES_GROUP_VERTICAL);
                 renderTextureButton(renderer, "vert_long", 210, 170, selectedFoliageTexture == FoliageTextureType.PALM_TREES_GROUP_VERTICAL_LONG);
             }
+        }
+        
+        // Grid mode controls (only show in GRID mode)
+        if (currentMode == EditorMode.GRID) {
+            renderer.renderText("Tile Textures:", 10, 110, 1.0f, 1.0f, 1.0f);
+            for (int i = 0; i < TileTextureType.values().length; i++) {
+                TileTextureType tileType = TileTextureType.values()[i];
+                boolean selected = selectedTileTexture == tileType;
+                float y = 100 - i * 15;
+                renderer.renderRect(10, y, 100, 12, selected ? 0.0f : 0.3f, selected ? 0.5f : 0.3f, selected ? 0.0f : 0.3f, 1.0f);
+                renderer.renderText(tileType.fileName, 12, y + 2, 1.0f, 1.0f, 1.0f);
+            }
+            
+            // Add row/column buttons
+            renderer.renderRect(120, 100, 80, 20, 0.2f, 0.4f, 0.2f, 1.0f);
+            renderer.renderText("Add Row", 125, 105, 1.0f, 1.0f, 1.0f);
+            renderer.renderRect(120, 75, 80, 20, 0.2f, 0.4f, 0.2f, 1.0f);
+            renderer.renderText("Add Column", 125, 80, 1.0f, 1.0f, 1.0f);
         }
         
         // Enemy config panel (only show in CONFIGURE mode)
@@ -839,20 +906,6 @@ public class EditorState implements EditorGameState {
         if (inputState.keys[3]) { // D - right
             cameraOffset = cameraOffset.add(new Vec2(moveDistance, 0));
         }
-        
-        // Clamp camera to map bounds - allow camera to show entire map
-        if (levelData != null) {
-            // Camera can scroll from showing top-left corner to showing bottom-right corner
-            float minX = GameConfig.SCREEN_WIDTH / 2;
-            float maxX = levelData.mapWidth - GameConfig.SCREEN_WIDTH / 2;
-            float minY = GameConfig.SCREEN_HEIGHT / 2;
-            float maxY = levelData.mapHeight - GameConfig.SCREEN_HEIGHT / 2;
-            
-            cameraOffset = new Vec2(
-                Math.max(minX, Math.min(maxX, cameraOffset.x())),
-                Math.max(minY, Math.min(maxY, cameraOffset.y()))
-            );
-        }
     }
 
     private void loadLevel() {
@@ -953,6 +1006,14 @@ public class EditorState implements EditorGameState {
         loadTextureWithFallback("ammopowerup", "assets/ammocratefull.png");
         loadTextureWithFallback("thrower", "assets/thrower/rotations/east.png");
         
+        // Load tile textures
+        loadTextureWithFallback("floorgrey1.png", "assets/floorgrey1.png");
+        loadTextureWithFallback("floorgrey2.png", "assets/floorgrey2.png");
+        loadTextureWithFallback("floorgrey3.png", "assets/floorgrey3.png");
+        loadTextureWithFallback("floorgrey4.png", "assets/floorgrey4.png");
+        loadTextureWithFallback("floorgrey5.png", "assets/floorgrey5.png");
+        loadTextureWithFallback("floorgrey6.png", "assets/floorgrey6.png");
+        
         // Load background texture
         if (levelData != null && levelData.backgroundTexture != null) {
             try {
@@ -977,5 +1038,90 @@ public class EditorState implements EditorGameState {
 
     private Texture getTextureForObject(String objectType) {
         return textures.get(objectType);
+    }
+    
+    private void handleGridMode(Vec2 worldPos) {
+        if (levelData.mapGrid == null) {
+            initializeGrid();
+        }
+        
+        int tileX = (int) (worldPos.x() / 128);
+        int tileY = (int) (worldPos.y() / 128);
+        
+        if (tileX >= 0 && tileX < levelData.mapGrid[0].length && 
+            tileY >= 0 && tileY < levelData.mapGrid.length) {
+            levelData.mapGrid[tileY][tileX] = selectedTileTexture.fileName;
+            hasUnsavedChanges = true;
+        }
+    }
+    
+    private void initializeGrid() {
+        levelData.mapGrid = new String[4][6];
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 6; x++) {
+                levelData.mapGrid[y][x] = "floorgrey1.png";
+            }
+        }
+        levelData.mapWidth = 6 * 128;
+        levelData.mapHeight = 4 * 128;
+    }
+
+    
+    private void addGridColumn() {
+        if (levelData.mapGrid == null) {
+            initializeGrid();
+            return;
+        }
+        
+        String[][] newGrid = new String[levelData.mapGrid.length][levelData.mapGrid[0].length + 1];
+        for (int y = 0; y < levelData.mapGrid.length; y++) {
+            System.arraycopy(levelData.mapGrid[y], 0, newGrid[y], 0, levelData.mapGrid[0].length);
+            newGrid[y][levelData.mapGrid[0].length] = selectedTileTexture.fileName;
+        }
+        
+        levelData.mapGrid = newGrid;
+        levelData.mapWidth = levelData.mapGrid[0].length * 128;
+        hasUnsavedChanges = true;
+    }
+    
+    private void addGridRow() {
+        if (levelData.mapGrid == null) {
+            initializeGrid();
+            return;
+        }
+        
+        String[][] newGrid = new String[levelData.mapGrid.length + 1][levelData.mapGrid[0].length];
+        for (int y = 0; y < levelData.mapGrid.length; y++) {
+            System.arraycopy(levelData.mapGrid[y], 0, newGrid[y], 0, levelData.mapGrid[0].length);
+        }
+        for (int x = 0; x < levelData.mapGrid[0].length; x++) {
+            newGrid[levelData.mapGrid.length][x] = selectedTileTexture.fileName;
+        }
+        
+        levelData.mapGrid = newGrid;
+        levelData.mapHeight = levelData.mapGrid.length * 128;
+        hasUnsavedChanges = true;
+    }
+    
+    private void renderTileGrid() {
+        if (levelData.mapGrid == null) return;
+        
+        int tileSize = 128;
+        for (int y = 0; y < levelData.mapGrid.length; y++) {
+            for (int x = 0; x < levelData.mapGrid[y].length; x++) {
+                String tileTextureName = levelData.mapGrid[y][x];
+                Texture tileTexture = textures.get(tileTextureName);
+                
+                float renderX = x * tileSize - cameraOffset.x() + GameConfig.SCREEN_WIDTH / 2;
+                float renderY = y * tileSize - cameraOffset.y() + GameConfig.SCREEN_HEIGHT / 2;
+                
+                if (tileTexture != null) {
+                    renderer.render(tileTexture, renderX, renderY, tileSize, tileSize);
+                } else {
+                    // Fallback colored rectangle
+                    renderer.renderRect(renderX, renderY, tileSize, tileSize, 0.3f, 0.3f, 0.3f, 1.0f);
+                }
+            }
+        }
     }
 }

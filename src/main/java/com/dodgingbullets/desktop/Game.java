@@ -39,6 +39,7 @@ public class Game {
     private Map<String, Texture> bearTextures = new HashMap<>();
     private Map<String, Texture> throwerTextures = new HashMap<>();
     private Map<String, Texture> mortarTextures = new HashMap<>();
+    private Map<String, Texture> tileTextures = new HashMap<>();
     private Texture petrolBombTexture;
     private Texture bombTexture;
     private boolean[] keys = new boolean[5]; // W, A, S, D, R
@@ -103,7 +104,7 @@ public class Game {
         loadTextures();
 
         gameRenderer = new GameRenderer();
-        gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
+        gameRenderer.setTextures(turretTextures, tileTextures, shadowTexture, bulletTexture, 
                                  shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                  explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
                                  bearTextures, throwerTextures, mortarTextures, petrolBombTexture, bombTexture);
@@ -114,9 +115,8 @@ public class Game {
         
         // Create background updater
         Runnable backgroundUpdater = () -> {
-            String backgroundTexture = GameObjectFactory.getBackgroundTexture();
-            grassTexture = renderer.loadTexture("assets/" + backgroundTexture);
-            gameRenderer.setTextures(turretTextures, grassTexture, shadowTexture, bulletTexture, 
+            // No longer needed since we use tile grid
+            gameRenderer.setTextures(turretTextures, tileTextures, shadowTexture, bulletTexture, 
                                    shellTexture, brokenTurretTexture, vignetteTexture, foliageTextures,
                                    explosionTextures, ammoFullTexture, ammoEmptyTexture, grenadeTexture, 
                                    bearTextures, throwerTextures, mortarTextures, petrolBombTexture, bombTexture);
@@ -182,6 +182,14 @@ public class Game {
     }
     
     private void loadTextures() {
+        // Load tile textures
+        tileTextures.put("floorgrey1.png", renderer.loadTexture("assets/floorgrey1.png"));
+        tileTextures.put("floorgrey2.png", renderer.loadTexture("assets/floorgrey2.png"));
+        tileTextures.put("floorgrey3.png", renderer.loadTexture("assets/floorgrey3.png"));
+        tileTextures.put("floorgrey4.png", renderer.loadTexture("assets/floorgrey4.png"));
+        tileTextures.put("floorgrey5.png", renderer.loadTexture("assets/floorgrey5.png"));
+        tileTextures.put("floorgrey6.png", renderer.loadTexture("assets/floorgrey6.png"));
+        
         grassTexture = renderer.loadTexture("assets/vibrant_random_grass.png");
         shadowTexture = renderer.loadTexture("assets/shadow.png");
         bulletTexture = renderer.loadTexture("assets/bullet.png");

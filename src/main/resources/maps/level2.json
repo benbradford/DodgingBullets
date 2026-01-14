@@ -1,7 +1,12 @@
 {
-  "backgroundTexture": "desert.png",
-  "mapWidth": 3200,
-  "mapHeight": 1800,
+  "mapGrid": [
+    ["floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png", "floorgrey1.png", "floorgrey2.png"],
+    ["floorgrey2.png", "floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png", "floorgrey1.png", "floorgrey2.png", "floorgrey3.png"],
+    ["floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png", "floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png"],
+    ["floorgrey4.png", "floorgrey5.png", "floorgrey6.png", "floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png", "floorgrey5.png"],
+    ["floorgrey5.png", "floorgrey6.png", "floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png"],
+    ["floorgrey6.png", "floorgrey1.png", "floorgrey2.png", "floorgrey3.png", "floorgrey4.png", "floorgrey5.png", "floorgrey6.png", "floorgrey1.png"]
+  ],
   "turrets": [
     {
       "x": 405,

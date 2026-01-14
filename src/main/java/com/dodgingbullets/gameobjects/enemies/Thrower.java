@@ -32,6 +32,12 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
     private static final float BACKING_OFF_DURATION = 1.0f;
     private static final float HIT_DURATION = 0.3f;
     private static final float THROW_DURATION = 1.05f; // 7 frames * 0.15s
+    private float damageFlashTimer = 0f;
+    public boolean shouldFlash() {
+        return damageFlashTimer > 0 && ((int)(damageFlashTimer * 20) % 2 == 0);
+    }
+    
+    private static final float DAMAGE_FLASH_DURATION = 0.3f;
     private static final float FADE_DURATION = 2.0f;
     
     // Movement and physics
@@ -76,6 +82,10 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
     
     @Override
     public void update(float deltaTime) {
+        if (damageFlashTimer > 0) {
+            damageFlashTimer -= deltaTime;
+        }
+        
         updateState(deltaTime);
         updateAnimation(deltaTime);
         updatePhysics(deltaTime);
@@ -463,6 +473,7 @@ public class Thrower extends EnemyObject implements Renderable, Collidable, Dama
         if (state == ThrowerState.DYING) return;
         
         health -= damage;
+        damageFlashTimer = DAMAGE_FLASH_DURATION;
         
         if (health <= 0) {
             // Death knockback
